@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import * as c from '../controllers/authController.js';
+import { validate } from '../middleware/validate.js';
+import { requireAuth } from '../middleware/authenticate.js';
+import { authLimiter } from '../middleware/rateLimit.js';
+import * as v from '../validators/index.js';
+
+const r = Router();
+r.get('/csrf', c.csrf);
+r.get('/config', c.publicConfig);
+r.post('/register', authLimiter, validate(v.registerSchema), c.register);
+r.post('/verify-email', authLimiter, validate(v.tokenSchema), c.verifyEmail);
+r.post('/resend-verification', authLimiter, validate(v.emailOnlySchema), c.resendVerification);
+r.post('/login', authLimiter, validate(v.loginSchema), c.login);
+r.post('/login/mfa', authLimiter, validate(v.loginMfaSchema), c.loginMfa);
+r.post('/refresh', authLimiter, c.refresh);
+r.post('/logout', requireAuth({ allowLimited: true }), c.logout);
+r.get('/session', c.session);
+r.get('/me', requireAuth({ allowLimited: true }), c.me);
+r.post('/forgot-password', authLimiter, validate(v.emailOnlySchema), c.forgotPassword);
+r.post('/reset-password', authLimiter, validate(v.resetSchema), c.resetPassword);
+r.post('/passkey/options', authLimiter, validate(v.passkeyOptionsSchema), c.passkeyOptions);
+r.post('/passkey/verify', authLimiter, validate(v.passkeyAuthSchema), c.passkeyVerify);
+export default r;
