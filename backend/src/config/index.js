@@ -1,6 +1,7 @@
 // Central configuration. Environment-specific defaults live here; secrets only
 // ever come from process.env and are never sent to the frontend.
 
+import { envSource } from './loadEnv.js'; // first import: populates process.env from a local file (if any) before anything below reads it
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -24,13 +25,16 @@ const perEnv = {
 }[env];
 
 const config = {
+  envSource,
   env,
   isProd,
   isTest: env === 'test',
   port: int(process.env.PORT, 4000),
   appUrl,
   corsOrigins: (process.env.CORS_ORIGINS || appUrl).split(',').map((s) => s.trim()).filter(Boolean),
-  trustProxy: bool(process.env.TRUST_PROXY, isProd),
+  // Number of reverse proxies in front of the API. Render alone = 1; Vercel rewrite -> Render = 2. Needed so rate limits and
+  // audit logs see the real client IP. TRUST_PROXY=true is kept as an alias for 1.
+  trustProxyHops: process.env.TRUST_PROXY_HOPS ? int(process.env.TRUST_PROXY_HOPS, 0) : bool(process.env.TRUST_PROXY, isProd) ? 1 : 0,
   logLevel: process.env.LOG_LEVEL || perEnv.logLevel,
 
   db: {
@@ -62,6 +66,9 @@ const config = {
     maxFailedLogins: int(process.env.MAX_FAILED_LOGINS, 5),
     lockMinutes: int(process.env.LOCK_MINUTES, 15),
     cookieSecure: bool(process.env.COOKIE_SECURE, perEnv.cookieSecure),
+    // 'strict' when the browser reaches the API through the frontend's own domain (Vercel rewrite / dev proxy / same origin).
+    // 'none' only for a direct cross-site API (requires Secure cookies; third-party-cookie blocking can break it).
+    cookieSameSite: ['strict', 'lax', 'none'].includes(process.env.COOKIE_SAMESITE) ? process.env.COOKIE_SAMESITE : 'strict',
     cookieDomain: process.env.COOKIE_DOMAIN || undefined,
     trustedDeviceDays: int(process.env.TRUSTED_DEVICE_DAYS, 30),
     emailTokenHours: 24,
@@ -129,20 +136,65 @@ if (config.isTest) {
   config.identity.webhookSecret ||= 'test-webhook-secret';
 }
 
+const PLACEHOLDER = /your-|example\.invalid|example\.(com|org|test)\b|<(password|your[^>]*)>|\[YOUR/i;
+const isLocalHost = (h) => ['localhost', '127.0.0.1', '::1', '[::1]'].includes(h) || h.endsWith('.localhost');
+
+/** Thrown for configuration problems. The message names variables only - never values - so it is safe to print. */
+export class ConfigError extends Error {}
+
 export function assertConfig() {
-  const problems = [];
-  const weak = (s) => !s || s.length < 32;
-  if (weak(config.auth.jwtSecret)) problems.push('JWT_SECRET must be set (32+ chars)');
-  if (weak(config.auth.jwtRefreshSecret)) problems.push('JWT_REFRESH_SECRET must be set (32+ chars)');
-  if (config.auth.jwtSecret === config.auth.jwtRefreshSecret) problems.push('JWT secrets must differ');
-  if (config.isProd) {
-    if (config.db.driver !== 'pg') problems.push('Production requires DB_DRIVER=pg with a Supabase DATABASE_URL');
-    if (!config.auth.cookieSecure) problems.push('COOKIE_SECURE must be true in production');
-    if (!config.appUrl.startsWith('https://')) problems.push('APP_URL must be https in production');
-    if (config.email.provider !== 'resend') problems.push('RESEND_API_KEY is required in production');
+  const missing = [];
+  const invalid = [];
+  const need = (name, ok, hint) => { if (!ok) missing.push(hint ? `${name} (${hint})` : name); };
+  const strong = (v) => !!v && v.length >= 32;
+
+  // Always: secrets, when present, must be strong. (Development auto-generates them; staging/production never do.)
+  if (config.auth.jwtSecret && config.auth.jwtSecret === config.auth.jwtRefreshSecret) invalid.push('JWT_SECRET and JWT_REFRESH_SECRET must be different values');
+  if (config.auth.jwtSecret && !strong(config.auth.jwtSecret)) invalid.push('JWT_SECRET must be at least 32 characters');
+  if (config.auth.jwtRefreshSecret && !strong(config.auth.jwtRefreshSecret)) invalid.push('JWT_REFRESH_SECRET must be at least 32 characters');
+
+  if (config.db.url) {
+    try {
+      const u = new URL(config.db.url);
+      if (!/^postgres(ql)?:$/.test(u.protocol)) invalid.push('DATABASE_URL must start with postgresql://');
+      if (PLACEHOLDER.test(config.db.url)) invalid.push('DATABASE_URL still contains a placeholder (e.g. [YOUR-PASSWORD])');
+    } catch { invalid.push('DATABASE_URL is not a valid URL (special characters in the password must be percent-encoded, e.g. @ as %40)'); }
   }
-  if (!['simulated', 'live'].includes(config.ledger.mode)) problems.push('LEDGER_MODE must be simulated or live');
-  if (problems.length) throw new Error(`Invalid configuration:\n - ${problems.join('\n - ')}`);
+  if (!!config.supabase.url !== !!config.supabase.serviceRoleKey) invalid.push('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together');
+  if (config.supabase.url && !/^https:\/\/.+/.test(config.supabase.url)) invalid.push('SUPABASE_URL must be an https:// URL');
+  if (config.auth.cookieSameSite === 'none' && !config.auth.cookieSecure) invalid.push('COOKIE_SAMESITE=none requires COOKIE_SECURE=true');
+  if (!['simulated', 'live'].includes(config.ledger.mode)) invalid.push('LEDGER_MODE must be "simulated" or "live"');
+
+  if (config.isProd) {
+    need('JWT_SECRET', strong(config.auth.jwtSecret), 'min 32 chars; generate with: openssl rand -base64 48');
+    need('JWT_REFRESH_SECRET', strong(config.auth.jwtRefreshSecret), 'min 32 chars, different from JWT_SECRET');
+    need('DATABASE_URL', !!config.db.url, 'Supabase connection string');
+    need('SUPABASE_URL', !!config.supabase.url, 'needed for private file storage; local disk is not persistent on Render');
+    need('SUPABASE_SERVICE_ROLE_KEY', !!config.supabase.serviceRoleKey);
+    need('APP_URL', !!process.env.APP_URL, 'public https origin of the frontend');
+    need('RESEND_API_KEY', !!config.email.resendApiKey, 'transactional email');
+    if (config.db.url && config.db.driver !== 'pg') invalid.push('DB_DRIVER must be "pg" in staging/production');
+    if (!config.auth.cookieSecure) invalid.push('COOKIE_SECURE must be true in staging/production');
+    for (const o of new Set([config.appUrl, ...config.corsOrigins])) {
+      try {
+        const u = new URL(o);
+        if (u.protocol !== 'https:' || isLocalHost(u.hostname)) invalid.push(`Origin "${o}" must be a public https:// origin in staging/production (check APP_URL / CORS_ORIGINS)`);
+      } catch { invalid.push(`Origin "${o}" is not a valid URL (check APP_URL / CORS_ORIGINS)`); }
+    }
+    if (PLACEHOLDER.test(config.email.from)) invalid.push('RESEND_FROM_EMAIL still contains a placeholder; use an address on your verified Resend domain');
+    if (PLACEHOLDER.test(config.email.supportEmail)) invalid.push('SUPPORT_EMAIL still contains a placeholder');
+    if (config.seedEnabled && env === 'production') invalid.push('ALLOW_SEED must not be true in production');
+  }
+
+  if (missing.length || invalid.length) {
+    const lines = [];
+    if (missing.length) lines.push(`Missing required environment variables:\n   - ${missing.join('\n   - ')}`);
+    if (invalid.length) lines.push(`Invalid configuration:\n   - ${invalid.join('\n   - ')}`);
+    const where = envSource.file
+      ? `Variables were loaded from ${envSource.file}.`
+      : `No .env file was used (${envSource.skipped || 'none found'}); only the process environment was read.${envSource.searched.length ? `\n   Searched: ${envSource.searched.join(', ')}` : ''}`;
+    throw new ConfigError(`${lines.join('\n')}\n${where}\nSee .env.example and DEPLOYMENT.md.`);
+  }
 }
 
 export default config;

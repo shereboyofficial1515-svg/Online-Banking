@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { initials } from '../lib/format.js';
 import { useEnter } from '../lib/motion.js';
+import { DASHBOARD_NOTE } from '../lib/disclosures.js';
 
 function NavList({ groups, onNavigate, badges }) {
   return groups.map((g) => (
@@ -103,10 +104,7 @@ export default function Shell({ mode, groups, bottomItems, footerNote }) {
         <main id="main" ref={main} tabIndex={-1} className="content" style={{ outline: 'none' }}>
           <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
           {mode === 'customer' && (
-            <p className="disclosure">
-              Balances shown are records in EWB Bank’s internal software ledger and are not bank deposits. EWB Bank is not currently a licensed or insured depository institution.
-              Withdrawal requests are reviewed by customer support; no external transfers are performed automatically.
-            </p>
+            <p className="disclosure">{DASHBOARD_NOTE} <Link to="/terms">Important information</Link></p>
           )}
         </main>
         <nav className="bottom-nav" aria-label="Quick navigation">

@@ -7,7 +7,8 @@ import { Button } from '../components/ui/Controls.jsx';
 import { Drawer } from '../components/ui/Overlay.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useAuth } from '../lib/auth.jsx';
-import { SkeletonCard } from '../components/ui/Feedback.jsx';
+import { SkeletonCard, ErrorState } from '../components/ui/Feedback.jsx';
+import { DISCLOSURE } from '../lib/disclosures.js';
 
 // ───────── customer & admin navigation definitions ─────────
 const customerGroups = [
@@ -50,9 +51,10 @@ const adminItems = [
 ];
 
 export function Gate({ children, staff = false }) {
-  const { loading, user, mfaEnrollmentRequired } = useAuth();
+  const { loading, user, mfaEnrollmentRequired, unreachable, reload } = useAuth();
   const loc = useLocation();
   if (loading) return <div style={{ maxWidth: 560, margin: '20vh auto', padding: 16 }}><SkeletonCard lines={3} /></div>;
+  if (unreachable) return <div style={{ maxWidth: 560, margin: '16vh auto', padding: 16 }}><ErrorState error={unreachable} onRetry={reload} /></div>;
   if (!user) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   if (staff && !user.isStaff) return <Navigate to="/app" replace />;
   if (!staff && user.isStaff) return <Navigate to="/admin" replace />;
@@ -61,7 +63,7 @@ export function Gate({ children, staff = false }) {
 }
 
 export function CustomerShell() {
-  return <Shell mode="customer" groups={customerGroups} bottomItems={customerBottom} footerNote="EWB Bank internal software ledger. Balances are not bank deposits." />;
+  return <Shell mode="customer" groups={customerGroups} bottomItems={customerBottom} footerNote="Secure digital banking." />;
 }
 
 export function AdminShell() {
@@ -102,7 +104,7 @@ export function PublicLayout() {
       <main id="main" tabIndex={-1} style={{ outline: 'none' }}><ErrorBoundary resetKey={useLocation().pathname}><Outlet /></ErrorBoundary></main>
       <footer className="pub-footer">
         <div className="footer-inner">
-          <div><Logo light /><p style={{ marginTop: 14, maxWidth: 340 }}>Modern digital banking software with a security-first design.</p></div>
+          <div><Logo light /><p style={{ marginTop: 14, maxWidth: 340 }}>Secure, modern digital banking built around clarity and control.</p></div>
           <div className="footer-grid">
             <div><h3>Banking</h3><a href="/#services">Services</a><a href="/#digital">Digital banking</a><Link to="/register">Open an account</Link><Link to="/login">Sign in</Link></div>
             <div><h3>Security</h3><Link to="/security-info">Security information</Link><Link to="/accessibility">Accessibility</Link><a href="/#faq">FAQ</a></div>
@@ -110,9 +112,7 @@ export function PublicLayout() {
             <div><h3>Contact</h3><a href="/#contact">Customer support</a><Link to="/app/support">Open a request</Link></div>
           </div>
           <p className="legal-note footer-inner" style={{ gridColumn: '1 / -1' }}>
-            EWB Bank is an independent software project and is not affiliated with any other financial institution. The platform currently operates an internal software ledger:
-            balances are ledger records, not deposits, and no regulated banking, payment or card services are provided. EWB Bank is not currently a licensed bank and deposits are not insured.
-            Regulated services will be offered only after the required licences, partner agreements and compliance programmes are in place.
+            © {new Date().getFullYear()} EWB Bank. All rights reserved. {DISCLOSURE}
           </p>
         </div>
       </footer>
@@ -136,7 +136,7 @@ export function AuthLayout({ children, wide, title, brandPoints = true }) {
             </ul>
           )}
         </div>
-        <p className="small">© {new Date().getFullYear()} EWB Bank. Internal software ledger — not a licensed depository institution.</p>
+        <p className="small">© {new Date().getFullYear()} EWB Bank. All rights reserved.</p>
       </aside>
       <main id="main" className="auth-panel">
         <div className={`auth-top ${wide ? 'wide' : ''}`}><span className="hide-desktop"><Logo /></span><Link to="/" className="small">← Back to website</Link></div>

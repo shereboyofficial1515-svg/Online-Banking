@@ -12,10 +12,21 @@ async function createPg() {
   const pg = (await import('pg')).default;
   pg.types.setTypeParser(20, (v) => Number(v)); // BIGINT minor units fit safely in a double
   pg.types.setTypeParser(1082, (v) => v); // DATE stays 'YYYY-MM-DD' (no timezone shifting)
+  const host = new URL(config.db.url).hostname;
+  const local = ['localhost', '127.0.0.1', '::1'].includes(host);
+  // Safety net: automated tests must never touch a remote database, even if a real DATABASE_URL leaks into the environment.
+  if (config.isTest && !local) throw new Error('Refusing to run tests against a non-local database.');
   const pool = new pg.Pool({
     connectionString: config.db.url,
     max: config.db.poolMax,
-    ssl: config.isProd ? { rejectUnauthorized: false } : undefined, // Supabase pooler terminates TLS
+    // Supabase requires TLS: enabled for every non-local host (dev, staging, production) unless DB_SSL=false.
+    // With DB_SSL_CA (PEM text of the Supabase root CA, newlines may be written as \n) the server certificate is fully
+    // verified. Without it the connection is encrypted but the certificate is not verified (Supabase poolers use a private CA).
+    ssl: local || process.env.DB_SSL === 'false'
+      ? undefined
+      : process.env.DB_SSL_CA ? { ca: process.env.DB_SSL_CA.replace(/\\n/g, '\n'), rejectUnauthorized: true } : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
     statement_timeout: 15_000,
   });
   const wrap = (c) => ({

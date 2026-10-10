@@ -52,7 +52,7 @@ export async function adjust(ctx, { accountId, direction, amountMinor, currency,
       type: direction === 'credit' ? 'ledger_credit' : 'ledger_debit', status: 'completed', amount: amountMinor, currency,
       accountId, counterpartyAccountId: fundingAcct.id, initiatedBy: actorId, reason, idempotencyKey,
       description: direction === 'credit' ? 'Ledger credit' : 'Ledger debit adjustment',
-      metadata: { adjustment: true, note: 'Internal test-ledger entry; not a bank deposit.' },
+      metadata: { adjustment: true, note: 'Ledger adjustment recorded by authorised staff.' },
     });
     const desc = `${tx.description} (${tx.reference})`;
     await L.postEntry(t, { account, transactionId: tx.id, entryType: 'admin_adjustment', direction, amount: amountMinor, description: desc });

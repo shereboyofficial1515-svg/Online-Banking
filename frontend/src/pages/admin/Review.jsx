@@ -9,7 +9,7 @@ import { Thread, Attachments } from '../app/Support.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../lib/auth.jsx';
 import { useApi, useDebounced, useDocumentTitle } from '../../lib/hooks.js';
-import { api, fieldErrors } from '../../lib/api.js';
+import { api, apiUrl, fieldErrors } from '../../lib/api.js';
 import { dateTime, relativeTime, titleCase } from '../../lib/format.js';
 
 const LIMIT = 20;
@@ -55,8 +55,8 @@ export function AdminVerificationDetail() {
           <div className="grid grid-2">{v.documents.map((d) => (
             <figure key={d.id} style={{ margin: 0 }}>
               <figcaption className="muted small" style={{ marginBottom: 6 }}><strong>{titleCase(d.kind)}</strong> · {Math.round(d.size / 1024)} KB · {dateTime(d.uploadedAt)}</figcaption>
-              {d.mime === 'application/pdf' ? <a className="btn btn-secondary btn-sm" href={`/api/admin/verification/documents/${d.id}`} target="_blank" rel="noreferrer noopener">Open PDF</a>
-                : <img src={`/api/admin/verification/documents/${d.id}`} alt={`${titleCase(d.kind)} submitted by ${v.customer}`} style={{ borderRadius: 12, border: '1px solid var(--line)', maxHeight: 360, width: '100%', objectFit: 'contain', background: 'var(--navy-50)' }} />}
+              {d.mime === 'application/pdf' ? <a className="btn btn-secondary btn-sm" href={apiUrl(`/api/admin/verification/documents/${d.id}`)} target="_blank" rel="noreferrer noopener">Open PDF</a>
+                : <img src={apiUrl(`/api/admin/verification/documents/${d.id}`)} alt={`${titleCase(d.kind)} submitted by ${v.customer}`} style={{ borderRadius: 12, border: '1px solid var(--line)', maxHeight: 360, width: '100%', objectFit: 'contain', background: 'var(--navy-50)' }} />}
             </figure>))}</div>
         ) : <EmptyState icon="file" title="No documents">{v.provider === 'manual' ? 'The customer has not uploaded any documents yet.' : 'This verification is handled by an external provider.'}</EmptyState>}
       </Card>

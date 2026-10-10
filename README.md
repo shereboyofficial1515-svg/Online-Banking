@@ -11,9 +11,11 @@ A security-first digital banking web platform with an **internal software ledger
 
 ```
 Online Banking/
-├── backend/    Node.js · Express · Supabase PostgreSQL (pg) · REST API       → npm test (94 tests)
-├── frontend/   React 19 · Vite · React Router · GSAP · hand-written CSS      → npm test (21 tests)
-└── docs/       Architecture, API, security, compliance, Supabase setup
+├── backend/    Node.js · Express · Supabase PostgreSQL (pg) · REST API       → npm test (122 tests)
+├── frontend/   React 19 · Vite · React Router · GSAP · hand-written CSS      → npm test (31 tests)
+├── docs/       Architecture, API, security audit, compliance, Supabase setup
+├── DEPLOYMENT.md   Vercel (frontend) + Render (backend) + Supabase, step by step
+└── render.yaml     Render Blueprint for the API
 ```
 
 ## Quick start (zero configuration)
@@ -28,7 +30,7 @@ npm run seed:dev                                     # optional: staff + demo cu
 APP_URL=http://localhost:4000 npm start              # http://localhost:4000
 ```
 
-Development defaults: embedded PostgreSQL ([PGlite](https://pglite.dev)) in `backend/.data`, emails printed to the
+**Environment file:** put it at `backend/.env` or the repository root `.env` (found from any directory; see `.env.example`, placeholders only). Production uses host variables instead — see [DEPLOYMENT.md](DEPLOYMENT.md). Development defaults without a file: embedded PostgreSQL ([PGlite](https://pglite.dev)) in `backend/.data`, emails printed to the
 console (recorded as `logged_only`, never as delivered), and random JWT secrets generated once into `.data/`.
 For hot reload run `npm run dev` in `backend/` and `npm run dev` in `frontend/` (Vite proxies `/api`; open
 `http://localhost:5173`, which is the default `APP_URL`).
@@ -52,9 +54,9 @@ Staff must enrol an authenticator app (MFA) on first sign-in before any admin pa
 
 | Command (in `backend/`) | What it covers |
 |---|---|
-| `npm test` | 94 tests on a real Postgres engine: auth, MFA, lockout, CSRF, sessions, ledger math & immutability, concurrency, withdrawals, verification + signed webhook, support, notifications, RBAC matrix, the "normal user must never…" matrix, error handling, headers, emails |
+| `npm test` | 122 tests on a real Postgres engine (never reads `.env`): environment loading/validation, migrations, auth, MFA, lockout, CSRF, rate limiting, sessions, ledger math & immutability, concurrency, withdrawals, verification + signed webhook, support, notifications, RBAC matrix, the "normal user must never…" matrix, error handling, headers, emails |
 | `npm run test:pg` | Re-runs suites through the production `pg` driver over the Postgres wire protocol with a 1-connection pool (catches transaction deadlocks) |
-| `npm test` (in `frontend/`) | 21 tests: accessibility wiring, modal focus-trap, tables, error boundary, API client (CSRF, refresh-once, errors) |
+| `npm test` (in `frontend/`) | 31 tests: accessibility wiring, modal focus-trap, tables, error boundary, API client (CSRF, refresh-once, timeouts, network errors, configurable base URL), customer-facing wording and unsupported-claim checks |
 
 ## Status and honest limitations
 

@@ -40,14 +40,14 @@ export function Terms() {
   return (
     <Doc title="Terms of Service">
       <p>By creating a profile you agree to these terms. Please read them with our <Link to="/privacy">Privacy Policy</Link>.</p>
-      <h2>1. What EWB Bank is today</h2>
-      <p>EWB Bank currently operates an <strong>internal software ledger</strong>. Balances shown are records within that ledger. They are <strong>not deposits</strong>, are not insured by any government scheme, and EWB Bank is not currently a licensed bank or depository institution. Nothing on this platform is an offer of regulated banking, payment, card or investment services.</p>
+      <h2>1. Our service and important information</h2>
+      <p>EWB Bank provides digital account and ledger services. Balances are <strong>ledger balances maintained by EWB Bank</strong>; they are not deposits with a bank and are not insured by any government scheme. EWB Bank does not currently hold a banking licence, and nothing on this platform is an offer of regulated banking, payment, card or investment services. Regulated services, when introduced, will be provided through appropriately licensed partners and will carry additional terms and eligibility checks.</p>
       <h2>2. Your profile</h2>
       <ul><li>You must be at least 18 and provide accurate information.</li><li>Keep your credentials secret. We will never ask for your password or one-time codes.</li><li>You are responsible for activity on your profile until you report unauthorised access.</li></ul>
       <h2>3. Transfers</h2>
       <p>Transfers move ledger value between EWB accounts and are available after identity verification. Each transfer has a unique reference and cannot be edited; if a correction is needed, our team appends a new, traceable ledger entry.</p>
       <h2>4. Withdrawal requests</h2>
-      <p>A withdrawal request is a request for review by customer support. Submitting a request does not send money, and no external transfer is performed automatically. We will show the true status of every request and may ask for additional verification.</p>
+      <p>A withdrawal request is a request for review by Customer Support. Submitting a request does not itself move funds. We show the true status of every request and may ask for additional verification.</p>
       <h2>5. Acceptable use</h2>
       <p>Do not attempt to access other profiles, interfere with the service, or use it for unlawful activity. We may restrict a profile while we investigate unusual activity and will explain next steps through customer support.</p>
       <h2>6. Availability and changes</h2>

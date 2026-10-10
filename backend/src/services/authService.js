@@ -41,6 +41,13 @@ function ageOk(dob) {
   return d <= cutoff;
 }
 
+/** True if a token of this kind was already issued very recently: used to stop mail-flooding of a victim's inbox. */
+async function issuedRecently(q, userId, purpose, seconds = 60) {
+  const { rows } = await q.query(
+    "SELECT 1 FROM auth_tokens WHERE user_id=$1 AND purpose=$2 AND created_at > now() - make_interval(secs => $3::int) LIMIT 1", [userId, purpose, seconds]);
+  return rows.length > 0;
+}
+
 // ───────── registration ─────────
 export async function register(ctx, input) {
   const problems = passwordProblems(input.password, { email: input.email });
@@ -84,7 +91,7 @@ export async function verifyEmail(ctx, rawToken) {
 export async function resendVerification(email) {
   const db = getDb();
   const u = await users.findByEmail(db, email);
-  if (u && !u.email_verified_at && u.status !== 'rejected') {
+  if (u && !u.email_verified_at && u.status !== 'rejected' && !(await issuedRecently(db, u.id, 'email_verification'))) {
     const token = await issueToken(db, u.id, 'email_verification', config.auth.emailTokenHours * 60);
     await sendEmail({ to: u.email, userId: u.id, template: 'email_verification', data: { firstName: u.first_name, url: `${config.appUrl}/verify-email?token=${token}` } });
   }
@@ -200,7 +207,7 @@ export async function logout(sessionId) {
 export async function forgotPassword(email, ctx) {
   const db = getDb();
   const u = await users.findByEmail(db, email);
-  if (u && u.status !== 'rejected') {
+  if (u && u.status !== 'rejected' && !(await issuedRecently(db, u.id, 'password_reset'))) {
     const token = await issueToken(db, u.id, 'password_reset', config.auth.resetTokenMinutes);
     await sendEmail({ to: u.email, userId: u.id, template: 'password_reset', data: { firstName: u.first_name, url: `${config.appUrl}/reset-password?token=${token}` } });
     await audit.record(db, ctx, { actorId: u.id, action: 'auth.password_reset_requested', targetType: 'user', targetId: u.id });

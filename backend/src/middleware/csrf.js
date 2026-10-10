@@ -11,7 +11,7 @@ export const CSRF_COOKIE = 'ewb_csrf';
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export function csrfCookieOptions() {
-  return { httpOnly: false, sameSite: 'strict', secure: config.auth.cookieSecure, path: '/', domain: config.auth.cookieDomain, maxAge: 7 * 86_400_000 };
+  return { httpOnly: false, sameSite: config.auth.cookieSameSite, secure: config.auth.cookieSecure, path: '/', domain: config.auth.cookieDomain, maxAge: 7 * 86_400_000 };
 }
 
 export function issueCsrfToken(req, res) {

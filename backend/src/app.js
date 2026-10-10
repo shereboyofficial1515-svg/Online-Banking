@@ -20,7 +20,7 @@ import { getDb } from './db/index.js';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  if (config.trustProxy) app.set('trust proxy', 1);
+  if (config.trustProxyHops > 0) app.set('trust proxy', config.trustProxyHops); // exact number of proxies in front of the app (never `true`: clients could spoof X-Forwarded-For)
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -61,6 +61,9 @@ export function createApp() {
   app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
   app.use('/api', globalLimiter, csrfProtect);
 
+  // Liveness: no database call, so a database blip never makes the host restart a healthy process (use for Render's health check).
+  app.get('/api/health/live', (req, res) => res.json({ status: 'ok' }));
+  // Readiness: confirms the database answers. Use for uptime monitoring.
   app.get('/api/health', asyncHandler(async (req, res) => {
     await getDb().query('SELECT 1');
     res.json({ status: 'ok', ledgerMode: config.ledger.mode });

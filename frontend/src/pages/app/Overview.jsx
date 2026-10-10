@@ -123,7 +123,7 @@ export function Accounts() {
           </Card>
         ))}
       </div>
-      <p className="muted small">Balances are internal ledger records, calculated from immutable ledger entries. They are not bank deposits.</p>
+      <p className="muted small">Balances are calculated from the ledger entries recorded on each account.</p>
       <Modal open={open} onClose={() => setOpen(false)} title="Open another account" size="sm"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button loading={busy} type="submit" form="open-acct">Open account</Button></>}>
         <form id="open-acct" onSubmit={create}>

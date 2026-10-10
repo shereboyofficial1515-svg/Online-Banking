@@ -94,7 +94,7 @@ export function Transfers() {
   );
 }
 
-const NOTICE = 'Withdrawal requests are reviewed by EWB Bank Customer Support. Submitting a request does not send money, and no external transfer is performed automatically.';
+const NOTICE = 'Withdrawal requests are reviewed by EWB Bank Customer Support. Submitting a request does not move funds; our team will contact you about next steps.';
 
 export function Withdrawals() {
   useDocumentTitle('Withdrawals');
@@ -107,6 +107,7 @@ export function Withdrawals() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [cancelId, setCancelId] = useState(null);
+  const [wdKey, setWdKey] = useState(uuid());
 
   if (acc.loading || list.loading) return <SkeletonCard lines={5} />;
   if (acc.error) return <ErrorState error={acc.error} onRetry={acc.refetch} />;
@@ -125,8 +126,8 @@ export function Withdrawals() {
     if (Object.keys(v).length) return;
     setBusy(true);
     try {
-      const r = await api.post('/api/withdrawals', { accountId: account.id, amount: f.amount, bankName: f.bankName, accountName: f.accountName, last4: f.last4, note: f.note || undefined });
-      setResult(r); setF({ ...f, amount: '', note: '' }); list.reload(); acc.reload();
+      const r = await api.post('/api/withdrawals', { accountId: account.id, amount: f.amount, bankName: f.bankName, accountName: f.accountName, last4: f.last4, note: f.note || undefined, idempotencyKey: wdKey });
+      setResult(r); setWdKey(uuid()); setF({ ...f, amount: '', note: '' }); list.reload(); acc.reload();
     } catch (ex) { setErr(ex); setFe(fieldErrors(ex)); } finally { setBusy(false); }
   };
   const cancel = async () => { await api.post(`/api/withdrawals/${cancelId}/cancel`); toast.success('Request cancelled.'); list.reload(); acc.reload(); };

@@ -188,7 +188,7 @@ export function Register() {
         </fieldset>
         <div className={fe.agree ? 'has-error' : ''}>
           <label className="checkbox"><input type="checkbox" checked={f.agree} onChange={set('agree')} aria-describedby="agree-note" />
-            <span>I am 18 or older and agree to the <Link to="/terms" target="_blank">Terms of Service</Link> and <Link to="/privacy" target="_blank">Privacy Policy</Link>. I understand EWB Bank operates an internal software ledger and is not a licensed or insured bank.</span></label>
+            <span>I am 18 or older and agree to the <Link to="/terms" target="_blank">Terms of Service</Link> and <Link to="/privacy" target="_blank">Privacy Policy</Link>, including the <Link to="/terms" target="_blank">important information</Link> on how balances are held.</span></label>
           {fe.agree && <p className="field-error" id="agree-note" role="alert"><Icon name="alert" size={14} /> {fe.agree}</p>}
         </div>
         <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>Create account</Button>

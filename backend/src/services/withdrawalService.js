@@ -28,7 +28,31 @@ const dto = (w) => ({
     : w.status === 'cancelled' ? 'This request was cancelled.' : CUSTOMER_MESSAGE,
 });
 
-export async function create(ctx, { accountId, amountMinor, bankName, accountName, last4, note }) {
+/** Returns the withdrawal created for an earlier request with the same idempotency key, if any. */
+async function findByKey(q, userId, key) {
+  if (!key) return null;
+  const { rows } = await q.query(
+    `SELECT w.* FROM withdrawal_requests w JOIN transactions t ON t.id = w.transaction_id WHERE w.user_id = $1 AND t.idempotency_key = $2`, [userId, key]);
+  return rows[0] || null;
+}
+
+export async function create(ctx, input) {
+  const db = getDb();
+  const prior = await findByKey(db, ctx.actor.id, input.idempotencyKey);
+  if (prior) return { withdrawal: dto(prior), message: CUSTOMER_MESSAGE, replayed: true };
+  try {
+    return await createOnce(ctx, input);
+  } catch (e) {
+    // Two identical submissions raced: the unique (user, key) index let exactly one through. Answer the loser with the winner.
+    if (e?.code === '23505' && input.idempotencyKey) {
+      const winner = await findByKey(db, ctx.actor.id, input.idempotencyKey);
+      if (winner) return { withdrawal: dto(winner), message: CUSTOMER_MESSAGE, replayed: true };
+    }
+    throw e;
+  }
+}
+
+async function createOnce(ctx, { accountId, amountMinor, bankName, accountName, last4, note, idempotencyKey }) {
   const db = getDb();
   const userId = ctx.actor.id;
   const out = await db.tx(async (t) => {
@@ -49,7 +73,7 @@ export async function create(ctx, { accountId, amountMinor, bankName, accountNam
     const reference = newReference('WDR');
     const tx = await L.insertTransaction(t, {
       type: 'withdrawal', status: verified ? 'pending' : 'blocked', amount: amountMinor, currency: account.currency, accountId, initiatedBy: userId,
-      description: 'Withdrawal request (no funds sent)', metadata: { withdrawalReference: reference },
+      description: 'Withdrawal request (no funds sent)', idempotencyKey, metadata: { withdrawalReference: reference },
     });
     const { rows } = await t.query(
       `INSERT INTO withdrawal_requests (reference, user_id, account_id, transaction_id, amount, currency, destination_bank_name, destination_account_name, destination_last4, user_note, status)

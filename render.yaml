@@ -1,0 +1,53 @@
+# Render Blueprint for the EWB Bank API (backend only; the frontend is deployed on Vercel).
+# Secrets are NOT stored here: variables marked `sync: false` are entered once in the Render dashboard.
+# No .env file is uploaded or needed in production.
+services:
+  - type: web
+    name: ewb-bank-api
+    runtime: node
+    rootDir: backend
+    plan: starter              # a free plan sleeps when idle; use a paid plan for a banking workload
+    region: oregon             # pick the region closest to your Supabase project
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start    # -> node src/server.js ; the app listens on process.env.PORT (set by Render) on 0.0.0.0
+    healthCheckPath: /api/health/live
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS   # Render's load balancer (1) + Vercel rewrite (1). Use 1 if the browser calls Render directly.
+        value: 2
+      - key: COOKIE_SECURE
+        value: true
+      - key: LEDGER_MODE
+        value: simulated
+      - key: ALLOW_SEED
+        value: false
+      - key: DB_POOL_MAX
+        value: 5
+      # Generated once by Render and kept stable across deploys (changing them signs everyone out).
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Public https origin of the Vercel site (no trailing slash). Controls CORS, CSRF origin check, WebAuthn and email links.
+      - key: APP_URL
+        sync: false
+      - key: CORS_ORIGINS        # optional extra origins, comma-separated (e.g. a Vercel preview domain)
+        sync: false
+      # Supabase
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # Email (Resend)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: SUPPORT_EMAIL
+        sync: false

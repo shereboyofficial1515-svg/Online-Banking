@@ -12,7 +12,7 @@
 import { AppError } from '../utils/errors.js';
 
 const notConfigured = (what) =>
-  new AppError(501, 'PROVIDER_NOT_CONFIGURED', `${what} is not enabled. EWB Bank currently operates an internal software ledger only.`);
+  new AppError(501, 'PROVIDER_NOT_CONFIGURED', `${what} is not available yet.`);
 
 export class NullPaymentProvider {
   name = 'none';

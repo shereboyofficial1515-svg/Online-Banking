@@ -1,14 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api } from './api.js';
+import { api, isNetworkError } from './api.js';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
 
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({ loading: true, user: null, permissions: [], mfaEnrollmentRequired: false, config: null });
+  const [state, setState] = useState({ loading: true, user: null, permissions: [], mfaEnrollmentRequired: false, config: null, unreachable: null });
 
   const apply = useCallback((payload) => setState((s) => ({
-    ...s, loading: false, user: payload?.user ?? null, permissions: payload?.permissions ?? [], mfaEnrollmentRequired: !!payload?.mfaEnrollmentRequired,
+    ...s, loading: false, unreachable: null, user: payload?.user ?? null, permissions: payload?.permissions ?? [], mfaEnrollmentRequired: !!payload?.mfaEnrollmentRequired,
   })), []);
 
   const reload = useCallback(async () => {
@@ -18,7 +18,10 @@ export function AuthProvider({ children }) {
         try { await api.post('/api/auth/refresh'); s = await api.get('/api/auth/session'); } catch { /* signed out */ }
       }
       apply(s.authenticated ? s : null);
-    } catch { apply(null); }
+    } catch (e) {
+      if (isNetworkError(e)) setState((s) => ({ ...s, loading: false, user: null, unreachable: e })); // keep "signed in" cookies; just tell the user
+      else apply(null);
+    }
   }, [apply]);
 
   useEffect(() => {
@@ -33,7 +36,7 @@ export function AuthProvider({ children }) {
     ...state,
     isStaff: !!state.user?.isStaff,
     can: (p) => state.permissions.includes(p), // UI hint only; the API enforces permissions
-    reload,
+    reload: async () => { setState((s) => ({ ...s, loading: true })); await reload(); },
     completeLogin: apply,
     logout: async () => { try { await api.post('/api/auth/logout'); } catch { /* already signed out */ } apply(null); },
   }), [state, reload, apply]);

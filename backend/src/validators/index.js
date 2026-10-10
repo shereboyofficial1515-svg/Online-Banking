@@ -86,6 +86,7 @@ export const withdrawalSchema = z.object({
   accountName: trimmed(2, 80, 'Account holder name'),
   last4: z.string().trim().regex(/^\d{4}$/, 'Enter the last 4 digits of the destination account.'),
   note: z.string().trim().max(300).optional(),
+  idempotencyKey: z.string().min(8).max(80).optional(), // one per form submission; makes double-clicks and retries safe
 });
 
 // ───────── verification ─────────

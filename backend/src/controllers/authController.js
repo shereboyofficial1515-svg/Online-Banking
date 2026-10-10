@@ -10,7 +10,7 @@ import { randomToken } from '../utils/crypto.js';
 import { unauthorized } from '../utils/errors.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const cookieBase = { httpOnly: true, sameSite: 'strict', secure: config.auth.cookieSecure, domain: config.auth.cookieDomain };
+const cookieBase = { httpOnly: true, sameSite: config.auth.cookieSameSite, secure: config.auth.cookieSecure, domain: config.auth.cookieDomain };
 
 function setSessionCookies(res, { accessToken, refreshToken }, role) {
   const staff = role !== 'customer';

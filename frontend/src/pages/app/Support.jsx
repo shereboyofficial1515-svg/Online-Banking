@@ -7,7 +7,7 @@ import Icon from '../../components/ui/Icon.jsx';
 import DataTable from '../../components/ui/DataTable.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
-import { api, fieldErrors } from '../../lib/api.js';
+import { api, apiUrl, fieldErrors } from '../../lib/api.js';
 import { dateTime, relativeTime, titleCase } from '../../lib/format.js';
 
 export const CATEGORIES = [['account', 'Account'], ['transactions', 'Transactions'], ['withdrawals', 'Withdrawals'], ['verification', 'Identity verification'], ['security', 'Security'], ['technical', 'Technical issue'], ['other', 'Something else']];
@@ -93,7 +93,7 @@ export function Thread({ messages, base }) {
         <div key={m.id} className={`msg ${m.authorType} ${m.internal ? 'internal' : ''}`}>
           <div className="msg-meta"><strong>{m.staffName || m.author}</strong>{m.internal && ' · Internal note'} · {dateTime(m.createdAt)}</div>
           <p>{m.body}</p>
-          {m.attachments?.length > 0 && <div className="chips" style={{ marginTop: 8 }}>{m.attachments.map((a) => <a key={a.id} className="chip" href={`${base}/attachments/${a.id}`} download><Icon name="paperclip" size={14} />{a.filename}</a>)}</div>}
+          {m.attachments?.length > 0 && <div className="chips" style={{ marginTop: 8 }}>{m.attachments.map((a) => <a key={a.id} className="chip" href={apiUrl(`${base}/attachments/${a.id}`)} download><Icon name="paperclip" size={14} />{a.filename}</a>)}</div>}
         </div>
       ))}
     </div>

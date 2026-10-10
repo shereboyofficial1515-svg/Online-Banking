@@ -16,7 +16,7 @@ export async function sendEmail({ to, userId = null, template, data = {} }) {
     const result = await provider.send({ to, subject, html: rendered.html, text: rendered.text });
     await db.query(
       'INSERT INTO email_outbox (user_id,to_email,template,subject,status,provider,provider_message_id,body_html) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-      [userId, to, template, subject, result.status, provider.name, result.id ?? null, provider.name === 'console' && !config.isProd ? rendered.html : null],
+      [userId, to, template, subject, result.status, provider.name, result.id ?? null, provider.name === 'console' && (config.isTest || config.db.driver === 'pglite') ? rendered.html : null],
     );
     return result.status;
   } catch (err) {

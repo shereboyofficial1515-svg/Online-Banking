@@ -8,7 +8,7 @@ import { useDocumentTitle } from '../../lib/hooks.js';
 const services = [
   ['wallet', 'Everyday accounts', 'Open a checking account and track balances, activity and statements-ready transaction history in one place.'],
   ['swap', 'Account-to-account transfers', 'Move value between EWB accounts instantly, with a unique reference and a notification for both parties.'],
-  ['upload', 'Withdrawal requests', 'Submit a withdrawal request and follow its review status. Requests are processed by our team; nothing is sent automatically.'],
+  ['upload', 'Withdrawal requests', 'Submit a withdrawal request and follow its review status. Our Customer Support team reviews every request.'],
   ['id', 'Identity verification', 'Complete verification once and unlock transfers. Documents are stored privately and reviewed by compliance staff.'],
   ['bell', 'Alerts and notifications', 'Choose which updates you receive. Security notices are always on so you can spot unexpected activity quickly.'],
   ['lifebuoy', 'Customer support', 'Open a request, attach documents and follow the conversation with a dedicated support team.'],
@@ -22,9 +22,9 @@ const features = [
   ['zap', 'Fast on every screen', 'A responsive experience for phones, tablets and desktops with accessible controls.'],
 ];
 const faqs = [
-  ['Is EWB Bank a licensed bank? Are deposits insured?', 'No. EWB Bank currently operates an internal software ledger. We are not a licensed depository institution and balances are not insured deposits. We will only offer regulated banking services after the necessary licences, banking-partner agreements and compliance programmes are in place, and we will update this page when that happens.'],
-  ['What do the balances in my account represent?', 'They are entries in EWB Bank’s internal ledger. Balances are always calculated from immutable ledger entries, never edited directly.'],
-  ['Can I withdraw money to my external bank account?', 'Not automatically. You can submit a withdrawal request, which our customer support and review teams handle. The status shown always reflects what has actually happened; we never show a transfer as sent unless it was.'],
+  ['Is EWB Bank a licensed bank? Are balances insured?', 'EWB Bank is a financial technology platform and does not currently hold a banking licence, so balances are ledger balances maintained by EWB Bank rather than insured deposits. Banking services will be provided through a licensed banking partner when they become available, and we will announce it here once that is in place.'],
+  ['How is my balance calculated?', 'Your balance is the total of the ledger entries recorded on your account. Entries are permanent and traceable, and a balance is never edited directly — corrections are made with new, clearly referenced entries.'],
+  ['How do withdrawals work?', 'Submit a withdrawal request from your dashboard and our Customer Support team will review it. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was.'],
   ['How does passkey sign-in work?', 'Your device creates a cryptographic key pair. We store only the public key. Fingerprint or face checks happen on your device, and we never receive biometric data.'],
   ['How do you verify my identity?', 'You upload an ID document and selfie, or complete a check with a verification provider once one is connected. We keep only the minimum information required and notify you of the outcome by email.'],
   ['What should I do if I notice unusual activity?', 'Change your password, end other sessions from the Security page, and contact customer support. We will never ask for your password or one-time codes.'],
@@ -61,7 +61,7 @@ export default function Home() {
         <div className="section-inner split">
           <div><div className="section-head"><h2>A modern bank experience, built carefully</h2><p>EWB Bank is designed for people who want clarity: clear balances, clear history, and clear explanations when something needs review. Every number you see comes from our ledger, and every sensitive action is recorded.</p></div></div>
           <ul className="ticks">
-            {['Balances derived from immutable ledger entries', 'Plain-language status for every request', 'No hidden fees on this platform — what you see is what is recorded', 'Honest disclosures about what EWB Bank is and is not'].map((t) => <li key={t}><Icon name="check-circle" /><span>{t}</span></li>)}
+            {['Balances derived from immutable ledger entries', 'Plain-language status for every request', 'Every credit, debit and transfer recorded and traceable', 'Clear terms and transparent service information'].map((t) => <li key={t}><Icon name="check-circle" /><span>{t}</span></li>)}
           </ul>
         </div>
       </section>
@@ -116,7 +116,7 @@ export default function Home() {
               <Button to={user ? '/app/support' : '/login'} variant="primary" icon="lifebuoy">Customer support</Button>
             </div>
           </div>
-          <div className="notice"><strong>Important:</strong> EWB Bank will never ask for your password, one-time codes or full account numbers by email, phone or chat. EWB Bank operates an internal software ledger and is not currently a licensed or insured depository institution.</div>
+          <div className="notice"><strong>Stay safe:</strong> EWB Bank will never ask for your password, one-time codes or full account numbers by email, phone or chat.</div>
         </div>
       </section>
     </div>

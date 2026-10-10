@@ -6,7 +6,7 @@ import Icon from '../../components/ui/Icon.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../lib/auth.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
-import { api, fieldErrors } from '../../lib/api.js';
+import { api, apiUrl, fieldErrors } from '../../lib/api.js';
 import { dateTime, initials, relativeTime, titleCase } from '../../lib/format.js';
 
 // ───────── Profile ─────────
@@ -37,7 +37,7 @@ export function Profile() {
       <PageHeader title="Profile" subtitle="Your personal details." />
       <Card>
         <div className="row" style={{ gap: 18 }}>
-          <span className="avatar" style={{ width: 72, height: 72, fontSize: '1.4rem' }}>{user.hasProfilePhoto ? <img key={photoKey} src={`/api/users/me/photo?v=${photoKey}`} alt="" /> : initials(user)}</span>
+          <span className="avatar" style={{ width: 72, height: 72, fontSize: '1.4rem' }}>{user.hasProfilePhoto ? <img key={photoKey} src={apiUrl(`/api/users/me/photo?v=${photoKey}`)} alt="" /> : initials(user)}</span>
           <div className="grow"><h2>{user.firstName} {user.lastName}</h2><p className="muted" style={{ margin: 0 }}>{user.email}</p></div>
           <input ref={file} className="file-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} aria-label="Upload profile photo" />
           <Button variant="secondary" icon="upload" onClick={() => file.current.click()}>Change photo</Button>
@@ -181,7 +181,6 @@ export function Notifications() {
 export function Settings() {
   useDocumentTitle('Settings');
   const toast = useToast();
-  const { config } = useAuth();
   const { data, loading, error, refetch } = useApi('/api/notifications/preferences');
   const [prefs, setPrefs] = useState(null);
   const list = prefs ?? data?.preferences;
@@ -210,7 +209,7 @@ export function Settings() {
         </div>
       </Card>
       <Card title="About your balances">
-        <p className="muted">Your balances are records in EWB Bank’s {config?.ledgerMode === 'live' ? 'ledger' : 'internal software ledger'}. They are calculated from immutable ledger entries and are not bank deposits. See the <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.</p>
+        <p className="muted">Your balance is calculated from the ledger entries recorded on your account, and every entry is permanent and traceable. See the <Link to="/terms">Terms of Service</Link> for how balances are held and our <Link to="/privacy">Privacy Policy</Link>.</p>
       </Card>
     </div>
   );

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/guard-vercel.mjs",
     "build": "vite build",
+    "postbuild": "node scripts/check-bundle.mjs",
     "preview": "vite preview",
     "test": "vitest run"
   },
@@ -23,5 +25,8 @@
     "jsdom": "^29.1.1",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -90,7 +90,8 @@ describe('email templates', () => {
       assert.match(html, /Security reminder/);
       assert.match(html, /will never ask for your password/);
       assert.match(html, /mailto:/);
-      assert.match(html, /not currently a licensed or insured depository institution/);
+      assert.match(html, /does not currently hold a banking licence/);
+      assert.match(html, /not insured deposits/);
       assert.ok(text.length > 40 && !/<[a-z]/.test(text), `${name} text part has markup`);
       assert.doesNotMatch(html, /East West/i);
     }
