@@ -14,8 +14,8 @@ after(closeDb);
 describe('migrations', () => {
   test('fresh database: applies everything once, then is a no-op', async () => {
     const db = await initDb();
-    assert.deepEqual((await status(db)).pending.length, 3);
-    assert.deepEqual(await migrate(db), ['001_schema.sql', '002_rls.sql', '003_storage_buckets.sql']);
+    assert.deepEqual((await status(db)).pending.length, 4);
+    assert.deepEqual(await migrate(db), ['001_schema.sql', '002_rls.sql', '003_storage_buckets.sql', '004_verification_code_attempts.sql']);
     assert.deepEqual(await migrate(db), []);
     assert.deepEqual((await status(db)).pending, []);
   });
@@ -30,12 +30,12 @@ describe('migrations', () => {
     const before = await status(db);
     assert.equal(before.hasTracker, false);
     assert.deepEqual(before.baselineCandidates, ['001_schema.sql', '002_rls.sql']);
-    assert.deepEqual(before.pending, ['003_storage_buckets.sql']);
+    assert.deepEqual(before.pending, ['003_storage_buckets.sql', '004_verification_code_attempts.sql']);
 
     const applied = await migrate(db); // would throw "relation already exists" without baselining
-    assert.deepEqual(applied, ['003_storage_buckets.sql']);
+    assert.deepEqual(applied, ['003_storage_buckets.sql', '004_verification_code_attempts.sql']);
     assert.equal((await db.query('SELECT count(*)::int n FROM users')).rows[0].n, 1, 'existing data untouched');
-    assert.deepEqual((await db.query('SELECT name FROM schema_migrations ORDER BY name')).rows.map((r) => r.name), ['001_schema.sql', '002_rls.sql', '003_storage_buckets.sql']);
+    assert.deepEqual((await db.query('SELECT name FROM schema_migrations ORDER BY name')).rows.map((r) => r.name), ['001_schema.sql', '002_rls.sql', '003_storage_buckets.sql', '004_verification_code_attempts.sql']);
   });
 
   test('status() is read-only', async () => {

@@ -80,18 +80,18 @@ describe('RBAC matrix', () => {
 });
 
 describe('email templates', () => {
-  const sample = { firstName: 'Ana', url: 'https://app.example/x?token=abc', time: 'now', ip: '1.1.1.1', device: 'Chrome', method: 'Password', title: 'T', message: 'M', amount: 12345, currency: 'USD', reference: 'EWB-ABC', accountMasked: '••••1234', description: 'd', direction: 'credit', statusLabel: 'Verified', reason: 'r', role: 'sender', heading: 'H', subject: 'S', ticketId: 'id', severity: 'high', eventId: 'e', roleLabel: 'Support Agent' };
+  const sample = { firstName: 'Ana', url: 'https://app.example/x?token=abc', time: 'now', ip: '1.1.1.1', device: 'Chrome', method: 'Password', title: 'T', message: 'M', amount: 12345, currency: 'USD', reference: 'EWB-ABC', accountMasked: '••••1234', description: 'd', direction: 'credit', statusLabel: 'Verified', reason: 'r', role: 'sender', heading: 'H', subject: 'S', ticketId: 'id', severity: 'high', eventId: 'e', roleLabel: 'Support Agent', code: '482917', minutes: 15 };
   test('every required template renders with branding, security footer and support contact', () => {
     for (const name of ['welcome', 'email_verification', 'login_notification', 'password_reset', 'new_device_login', 'security_alert', 'account_approved', 'account_rejected', 'identity_status', 'withdrawal_received', 'withdrawal_blocked', 'support_notification', 'account_status', 'admin_security_alert']) {
       assert.ok(TEMPLATE_NAMES.includes(name), `missing template ${name}`);
       const { subject, html, text } = renderTemplate(name, sample);
       assert.ok(subject.length > 5, name);
       assert.match(html, /EWB/);
-      assert.match(html, /Security reminder/);
-      assert.match(html, /will never ask for your password/);
+      assert.match(html, /Security tip/);
+      assert.match(html, /keep your password and verification codes private/);
       assert.match(html, /mailto:/);
-      assert.match(html, /does not currently hold a banking licence/);
-      assert.match(html, /not insured deposits/);
+      assert.match(html, /ledger balances maintained by EWB Bank/);
+      assert.match(html, /\/terms"/); // full terms one click away
       assert.ok(text.length > 40 && !/<[a-z]/.test(text), `${name} text part has markup`);
       assert.doesNotMatch(html, /East West/i);
     }

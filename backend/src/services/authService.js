@@ -10,7 +10,8 @@ import * as security from './securityEventService.js';
 import { sendEmail } from './emailService.js';
 import { notify } from './notificationService.js';
 import { hashPassword, verifyPassword, passwordProblems } from '../utils/passwords.js';
-import { randomToken, sha256 } from '../utils/crypto.js';
+import { randomInt } from 'node:crypto';
+import { hmacSha256Hex, randomToken, safeEqual, sha256 } from '../utils/crypto.js';
 import { STAFF_ROLES } from '../config/permissions.js';
 import { AppError, badRequest, forbidden, tooMany, unauthorized, validationError } from '../utils/errors.js';
 
@@ -41,6 +42,27 @@ function ageOk(dob) {
   return d <= cutoff;
 }
 
+// ───────── email verification codes ─────────
+// A 6-digit code, stored only as a keyed hash (HMAC with a server secret) so a database leak cannot be turned into
+// working codes offline. Valid 15 minutes, 5 wrong guesses invalidate it, and requests are rate-limited per address.
+const CODE_MINUTES = 15;
+const MAX_CODE_ATTEMPTS = 5;
+const codeHash = (userId, code) => hmacSha256Hex(`${config.auth.jwtRefreshSecret}:email-code`, `${userId}:${code}`);
+
+async function issueEmailCode(q, userId) {
+  const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+  await q.query("UPDATE auth_tokens SET used_at=now() WHERE user_id=$1 AND purpose='email_verification' AND used_at IS NULL", [userId]);
+  await q.query("INSERT INTO auth_tokens (user_id, purpose, token_hash, expires_at) VALUES ($1,'email_verification',$2,$3)",
+    [userId, codeHash(userId, code), new Date(Date.now() + CODE_MINUTES * 60_000)]);
+  return code;
+}
+
+async function sendVerificationCode(user, code) {
+  await sendEmail({ to: user.email, userId: user.id, template: 'email_verification', data: { firstName: user.first_name, code, minutes: CODE_MINUTES, url: `${config.appUrl}/verify-email` } });
+}
+
+const wrongCode = () => badRequest('That code is incorrect or has expired. Please check it or request a new code.');
+
 /** True if a token of this kind was already issued very recently: used to stop mail-flooding of a victim's inbox. */
 async function issuedRecently(q, userId, purpose, seconds = 60) {
   const { rows } = await q.query(
@@ -68,32 +90,44 @@ export async function register(ctx, input) {
   const { user, token } = await db.tx(async (t) => {
     const user = await users.create(t, { ...input, passwordHash, role: 'customer', status: 'active' });
     await accountService.openDefaultAccount(t, user.id);
-    const token = await issueToken(t, user.id, 'email_verification', config.auth.emailTokenHours * 60);
+    const code = await issueEmailCode(t, user.id);
     await audit.record(t, ctx, { actorId: user.id, actorRole: 'customer', action: 'user.register', targetType: 'user', targetId: user.id });
-    return { user, token };
+    return { user, token: code };
   });
-  await sendEmail({ to: user.email, userId: user.id, template: 'welcome', data: { firstName: user.first_name } });
-  await sendEmail({ to: user.email, userId: user.id, template: 'email_verification', data: { firstName: user.first_name, url: `${config.appUrl}/verify-email?token=${token}` } });
+  await sendVerificationCode(user, token);
   return { created: true, userId: user.id };
 }
 
-export async function verifyEmail(ctx, rawToken) {
+export async function verifyEmail(ctx, { email, code }) {
   const db = getDb();
-  const userId = await db.tx(async (t) => {
-    const uid = await consumeToken(t, rawToken, 'email_verification');
-    await users.update(t, uid, { email_verified_at: new Date() });
-    await audit.record(t, ctx, { actorId: uid, action: 'user.email_verified', targetType: 'user', targetId: uid });
-    return uid;
+  const user = await users.findByEmail(db, email);
+  // Unknown address and already-verified address answer exactly like a wrong code (no account enumeration).
+  if (!user || user.email_verified_at) { codeHash('00000000-0000-0000-0000-000000000000', code); throw wrongCode(); }
+
+  const result = await db.tx(async (t) => {
+    const { rows } = await t.query(
+      "SELECT * FROM auth_tokens WHERE user_id=$1 AND purpose='email_verification' AND used_at IS NULL AND expires_at > now() ORDER BY created_at DESC LIMIT 1 FOR UPDATE", [user.id]);
+    const tok = rows[0];
+    if (!tok) return { ok: false };
+    if (safeEqual(tok.token_hash, codeHash(user.id, code))) {
+      await t.query('UPDATE auth_tokens SET used_at=now() WHERE id=$1', [tok.id]);
+      await users.update(t, user.id, { email_verified_at: new Date() });
+      await audit.record(t, ctx, { actorId: user.id, action: 'user.email_verified', targetType: 'user', targetId: user.id });
+      return { ok: true };
+    }
+    const attempts = tok.attempts + 1;
+    await t.query('UPDATE auth_tokens SET attempts=$2::int, used_at = CASE WHEN $2::int >= $3::int THEN now() ELSE used_at END WHERE id=$1', [tok.id, attempts, MAX_CODE_ATTEMPTS]);
+    return { ok: false, exhausted: attempts >= MAX_CODE_ATTEMPTS }; // committed: the failed guess is counted
   });
-  await notify(userId, { category: 'account', title: 'Email verified', body: 'Your email address has been verified.' });
+  if (!result.ok) throw result.exhausted ? badRequest('Too many incorrect attempts. Please request a new code.') : wrongCode();
+  await notify(user.id, { category: 'account', title: 'Email verified', body: 'Your email address has been verified.' });
 }
 
 export async function resendVerification(email) {
   const db = getDb();
   const u = await users.findByEmail(db, email);
   if (u && !u.email_verified_at && u.status !== 'rejected' && !(await issuedRecently(db, u.id, 'email_verification'))) {
-    const token = await issueToken(db, u.id, 'email_verification', config.auth.emailTokenHours * 60);
-    await sendEmail({ to: u.email, userId: u.id, template: 'email_verification', data: { firstName: u.first_name, url: `${config.appUrl}/verify-email?token=${token}` } });
+    await sendVerificationCode(u, await issueEmailCode(db, u.id));
   }
 }
 
@@ -140,7 +174,7 @@ export async function login(ctx, { identifier, password }, deviceCookie) {
   // Password correct from here on - status can now be disclosed without enabling account enumeration.
   if (user.status === 'locked') throw forbidden('Your account is locked. Please contact EWB Bank Customer Support.', 'ACCOUNT_LOCKED');
   if (user.status === 'rejected') throw forbidden('Your application was not approved. Please contact EWB Bank Customer Support.', 'ACCOUNT_REJECTED');
-  if (!user.email_verified_at) throw forbidden('Please verify your email address before signing in. Check your inbox or request a new link.', 'EMAIL_NOT_VERIFIED');
+  if (!user.email_verified_at) throw new AppError(403, 'EMAIL_NOT_VERIFIED', 'Please verify your email address to continue. Enter the code we sent you, or request a new one.', { email: user.email });
 
   if (user.mfa_enabled) {
     const device = await sessions.findDevice(db, user.id, deviceCookie);

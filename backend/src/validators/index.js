@@ -41,6 +41,7 @@ export const loginMfaSchema = z.object({
   trustDevice: z.boolean().optional(),
 }).refine((v) => v.code || v.recoveryCode, { message: 'Enter an authenticator code or a recovery code.', path: ['code'] });
 export const tokenSchema = z.object({ token: z.string().min(10).max(200) });
+export const verifyEmailSchema = z.object({ email, code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code from your email.') });
 export const emailOnlySchema = z.object({ email });
 export const resetSchema = z.object({ token: z.string().min(10).max(200), password });
 export const changePasswordSchema = z.object({ currentPassword: password, newPassword: password });

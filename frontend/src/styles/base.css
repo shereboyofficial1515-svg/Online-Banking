@@ -191,3 +191,7 @@ code, .mono { font-family: var(--mono); font-size: .92em; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
   .skeleton { animation: none; }
 }
+
+/* verification code entry */
+.input.code-input { text-align: center; font-family: var(--mono); font-size: 1.7rem; font-weight: 700; letter-spacing: .45em; padding-left: calc(14px + .45em); min-height: 58px; }
+.input.code-input::placeholder { color: #B6BECB; font-weight: 500; }

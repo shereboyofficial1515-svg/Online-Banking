@@ -61,10 +61,10 @@ export const register = asyncHandler(async (req, res) => {
   // Identical response whether or not the email already existed (prevents account enumeration).
   res.status(202).json({ message: 'Thank you. Please check your email to verify your address and complete your registration.' });
 });
-export const verifyEmail = asyncHandler(async (req, res) => { await auth.verifyEmail(req.ctx, req.body.token); res.json({ ok: true }); });
+export const verifyEmail = asyncHandler(async (req, res) => { await auth.verifyEmail(req.ctx, req.body); res.json({ ok: true }); });
 export const resendVerification = asyncHandler(async (req, res) => {
   await auth.resendVerification(req.body.email);
-  res.status(202).json({ message: 'If that address needs verification, a new link is on its way.' });
+  res.status(202).json({ message: 'If that address needs verification, a new code is on its way.' });
 });
 
 export const login = asyncHandler(async (req, res) => {

@@ -6,8 +6,11 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const NAVY = '#0B1F3A';
 const ACCENT = '#1E9E86';
 
-function button(href, label) {
-  return `<p style="margin:28px 0"><a href="${esc(href)}" style="background:${NAVY};color:#fff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:600;display:inline-block">${esc(label)}</a></p>`;
+function button(href, label, align = 'left') {
+  return `<p style="margin:28px 0;text-align:${align}"><a href="${esc(href)}" style="background:${NAVY};color:#fff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:600;display:inline-block">${esc(label)}</a></p>`;
+}
+function codeBlock(code) {
+  return `<table role="presentation" align="center" style="margin:22px auto 14px"><tr><td style="background:#F1F4F9;border:1px solid #E1E5EC;border-radius:12px;padding:16px 30px;font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:34px;font-weight:700;letter-spacing:10px;color:${NAVY};text-align:center">${esc(code)}</td></tr></table>`;
 }
 const detailTable = (rows) =>
   `<table role="presentation" width="100%" style="border-collapse:collapse;margin:18px 0;font-size:14px">${rows
@@ -26,8 +29,8 @@ function layout({ preheader, heading, bodyHtml, security = true }) {
 <tr><td style="padding:34px 32px 8px"><h1 style="margin:0 0 14px;font-size:22px;line-height:1.3;color:${NAVY}">${esc(heading)}</h1>
 <div style="font-size:15px;line-height:1.65">${bodyHtml}</div></td></tr>
 <tr><td style="padding:8px 32px 30px"><hr style="border:none;border-top:1px solid #E6E9EF;margin:18px 0">
-${security ? `<p style="font-size:12.5px;line-height:1.6;color:#5B6678;margin:0 0 10px"><strong>Security reminder:</strong> EWB Bank will never ask for your password, one-time codes or full card or account numbers by email or phone. If you did not expect this message, contact us at <a href="mailto:${esc(config.email.supportEmail)}" style="color:${NAVY}">${esc(config.email.supportEmail)}</a> and secure your account.</p>` : ''}
-<p style="font-size:12px;line-height:1.6;color:#7C8799;margin:0">Sent ${esc(now)}. EWB Bank is a financial technology platform and does not currently hold a banking licence. Account balances are ledger balances maintained by EWB Bank and are not insured deposits.</p>
+${security ? `<p style="font-size:12.5px;line-height:1.6;color:#5B6678;margin:0 0 10px"><strong>Security tip:</strong> keep your password and verification codes private; they are only ever entered on the EWB Bank website. Questions about this message? Contact us at <a href="mailto:${esc(config.email.supportEmail)}" style="color:${NAVY}">${esc(config.email.supportEmail)}</a>.</p>` : ''}
+<p style="font-size:12px;line-height:1.6;color:#7C8799;margin:0">Sent ${esc(now)}. EWB Bank is a financial technology platform. Account balances are ledger balances maintained by EWB Bank; see our <a href="${esc(config.appUrl)}/terms" style="color:#7C8799">Terms of Service</a> for details.</p>
 </td></tr></table></td></tr></table></body></html>`;
 }
 
@@ -42,9 +45,9 @@ const T = {
     body: `<p>${hi(d)}</p><p>Thank you for registering. Your account is now pending review. We will notify you as soon as it is approved. In the meantime, please verify your email address.</p>`,
   }),
   email_verification: (d) => ({
-    subject: 'Verify your EWB Bank email address',
-    heading: 'Confirm your email address',
-    body: `<p>${hi(d)}</p><p>Please confirm that this is your email address. The link expires in ${config.auth.emailTokenHours} hours and can be used once.</p>${button(d.url, 'Verify email address')}<p style="font-size:13px;color:#5B6678">Button not working? Copy this link: ${esc(d.url)}</p>`,
+    subject: 'Your EWB Bank verification code',
+    heading: 'Verify your email address',
+    body: `<p>${hi(d)}</p><p>Welcome to EWB Bank. Enter the code below on the verification page to confirm your email address and finish setting up your profile.</p>${codeBlock(d.code)}<p style="text-align:center;color:#5B6678;font-size:13.5px;margin:-6px 0 0">This code is valid for ${esc(d.minutes)} minutes.</p>${button(d.url, 'Verify my email', 'center')}<p style="font-size:13px;color:#5B6678;margin:0;text-align:center">Haven't created an EWB Bank profile? No action is needed.</p>`,
   }),
   login_notification: (d) => ({
     subject: 'New sign-in to your EWB Bank account',

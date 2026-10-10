@@ -25,7 +25,6 @@ export function Login() {
   const [err, setErr] = useState(null);
   const [fe, setFe] = useState({});
   const [busy, setBusy] = useState(false);
-  const [resent, setResent] = useState(false);
   const passkeys = browserSupportsWebAuthn();
 
   useEffect(() => { if (user) nav(user.isStaff ? '/admin' : '/app', { replace: true }); }, [user, nav]);
@@ -67,10 +66,6 @@ export function Login() {
     } finally { setBusy(false); }
   };
 
-  const resend = async () => {
-    try { await api.post('/api/auth/resend-verification', { email: form.identifier }); setResent(true); toast.success('If that address needs verification, a new link is on its way.'); } catch (ex) { toast.error(ex.message); }
-  };
-
   if (step === 'mfa') {
     return (
       <AuthLayout title="Verify it’s you">
@@ -95,7 +90,7 @@ export function Login() {
       <p className="lead">Sign in to manage your accounts.</p>
       {err && (
         <Alert tone="danger" title={err.code === 'EMAIL_NOT_VERIFIED' ? 'Email not verified' : undefined}
-          action={err.code === 'EMAIL_NOT_VERIFIED' && !resent ? <Button size="sm" variant="secondary" onClick={resend}>Resend link</Button> : null}>{err.message}</Alert>
+          action={err.code === 'EMAIL_NOT_VERIFIED' ? <Button size="sm" variant="secondary" onClick={() => nav('/verify-email', { state: { email: err.details?.email } })}>Enter code</Button> : null}>{err.message}</Alert>
       )}
       <form onSubmit={submit} noValidate>
         <Field label="Email or username" error={fe.identifier} required>{(p) => <Input {...p} autoFocus autoComplete="username" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />}</Field>
@@ -122,7 +117,7 @@ export function Register() {
   const [fe, setFe] = useState({});
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(null);
+  const nav = useNavigate();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
   const submit = async (e) => {
@@ -137,19 +132,10 @@ export function Register() {
     try {
       const { confirm, agree, ...body } = f;
       Object.keys(body).forEach((k) => { if (body[k] === '') delete body[k]; });
-      setDone((await api.post('/api/auth/register', body)).message);
+      await api.post('/api/auth/register', body);
+      nav('/verify-email', { replace: true, state: { email: f.email.trim().toLowerCase(), justRegistered: true } });
     } catch (ex) { setErr(ex); setFe(fieldErrors(ex)); } finally { setBusy(false); }
   };
-
-  if (done) {
-    return (
-      <AuthLayout title="Check your email">
-        <Alert tone="success" icon="mail">{done}</Alert>
-        <p className="muted">We sent a verification link to <strong>{f.email}</strong>. It expires in 24 hours. After verifying, you can sign in; your account will then be reviewed by our team.</p>
-        <Button to="/login" variant="secondary" style={{ width: '100%' }}>Go to sign in</Button>
-      </AuthLayout>
-    );
-  }
 
   return (
     <AuthLayout title="Open your account" wide>
@@ -198,36 +184,80 @@ export function Register() {
   );
 }
 
-// ───────── Email verification ─────────
+// ───────── Email verification (6-digit code) ─────────
 export function VerifyEmail() {
-  useDocumentTitle('Verify email');
-  const [params] = useSearchParams();
-  const token = params.get('token');
-  const [state, setState] = useState(token ? 'loading' : 'missing');
-  const [msg, setMsg] = useState('');
+  useDocumentTitle('Verify your email');
+  const loc = useLocation();
+  const toast = useToast();
+  const [email, setEmail] = useState(loc.state?.email || '');
+  const [code, setCode] = useState('');
+  const [fe, setFe] = useState({});
+  const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(loc.state?.justRegistered ? 60 : 0); // a code was just sent: avoid an immediate resend
+
+  const counting = cooldown > 0;
   useEffect(() => {
-    if (!token) return;
-    let live = true;
-    api.post('/api/auth/verify-email', { token }).then(() => live && setState('ok')).catch((e) => { if (live) { setMsg(e.message); setState('error'); } });
-    return () => { live = false; };
-  }, [token]);
+    if (!counting) return undefined;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [counting]);
+
+  const submit = async (e) => {
+    e.preventDefault(); setErr(null);
+    const local = {};
+    if (!email.trim()) local.email = 'Enter the email address you registered with.';
+    if (!/^\d{6}$/.test(code)) local.code = 'Enter the 6-digit code from your email.';
+    setFe(local);
+    if (Object.keys(local).length) return;
+    setBusy(true);
+    try {
+      await api.post('/api/auth/verify-email', { email: email.trim(), code });
+      setVerified(true);
+    } catch (ex) { setErr(ex); setFe(fieldErrors(ex)); setCode(''); } finally { setBusy(false); }
+  };
+
+  const resend = async () => {
+    if (!email.trim()) { setFe({ email: 'Enter your email address first.' }); return; }
+    setResending(true); setErr(null);
+    try {
+      await api.post('/api/auth/resend-verification', { email: email.trim() });
+      toast.success('If that address needs verification, a new code is on its way.');
+      setCooldown(60);
+    } catch (ex) { toast.error(ex.message); } finally { setResending(false); }
+  };
+
+  if (verified) {
+    return (
+      <AuthLayout title="Email verified">
+        <Alert tone="success" icon="check-circle">Thank you — your email address is confirmed. You can now sign in to your EWB Bank profile.</Alert>
+        <Button to="/login" size="lg" style={{ width: '100%' }}>Continue to sign in</Button>
+      </AuthLayout>
+    );
+  }
+
   return (
-    <AuthLayout title="Email verification">
-      {state === 'loading' && <p role="status">Verifying your email…</p>}
-      {state === 'ok' && (<><Alert tone="success">Your email address is verified. You can now sign in.</Alert><Button to="/login" style={{ width: '100%' }}>Continue to sign in</Button></>)}
-      {state === 'error' && (<><Alert tone="danger">{msg}</Alert><ResendForm /></>)}
-      {state === 'missing' && (<><Alert tone="warning">This verification link is incomplete. Request a new one below.</Alert><ResendForm /></>)}
+    <AuthLayout title="Verify your email">
+      <p className="lead">{loc.state?.email ? <>We sent a 6-digit code to <strong>{loc.state.email}</strong>. Enter it below to confirm your email address.</> : 'Enter the 6-digit code from your verification email to confirm your address.'}</p>
+      {err && !fe.code && !fe.email && <Alert tone="danger">{err.message}</Alert>}
+      <form onSubmit={submit} noValidate>
+        <Field label="Email address" error={fe.email} required>{(p) => <Input {...p} type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field>
+        <Field label="Verification code" error={fe.code} hint="The code is valid for 15 minutes." required>
+          {(p) => <Input {...p} className="code-input" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" autoFocus={!!email} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />}
+        </Field>
+        <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>Verify email</Button>
+      </form>
+      <p className="auth-foot">
+        Didn’t receive a code?{' '}
+        <button type="button" className="btn btn-ghost btn-sm" onClick={resend} disabled={resending || cooldown > 0} aria-live="polite">
+          {cooldown > 0 ? `Resend code in ${cooldown}s` : resending ? 'Sending…' : 'Resend code'}
+        </button>
+      </p>
+      <p className="auth-foot"><Link to="/login">Back to sign in</Link></p>
     </AuthLayout>
   );
-}
-
-function ResendForm() {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const go = async (e) => { e.preventDefault(); setBusy(true); try { await api.post('/api/auth/resend-verification', { email }); setSent(true); } catch { setSent(true); } finally { setBusy(false); } };
-  if (sent) return <Alert tone="success">If that address needs verification, a new link is on its way.</Alert>;
-  return (<form onSubmit={go}><Field label="Email address" required>{(p) => <Input {...p} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />}</Field><Button type="submit" loading={busy} variant="secondary" style={{ width: '100%' }}>Send a new link</Button></form>);
 }
 
 // ───────── Forgot / reset password ─────────

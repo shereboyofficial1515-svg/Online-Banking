@@ -9,7 +9,7 @@ const r = Router();
 r.get('/csrf', c.csrf);
 r.get('/config', c.publicConfig);
 r.post('/register', authLimiter, validate(v.registerSchema), c.register);
-r.post('/verify-email', authLimiter, validate(v.tokenSchema), c.verifyEmail);
+r.post('/verify-email', authLimiter, validate(v.verifyEmailSchema), c.verifyEmail);
 r.post('/resend-verification', authLimiter, validate(v.emailOnlySchema), c.resendVerification);
 r.post('/login', authLimiter, validate(v.loginSchema), c.login);
 r.post('/login/mfa', authLimiter, validate(v.loginMfaSchema), c.loginMfa);

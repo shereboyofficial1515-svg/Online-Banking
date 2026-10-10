@@ -13,7 +13,7 @@ Statuses: 400 bad request · 401 unauthenticated · 403 forbidden (incl. `CSRF_I
 > **Ledger mode:** all money endpoints operate on the internal software ledger. No endpoint transfers funds externally.
 
 ## Public / auth — `/api/auth`
-`GET csrf` · `GET config` · `GET session` · `POST register` · `POST verify-email` · `POST resend-verification` ·
+`GET csrf` · `GET config` · `GET session` · `POST register` · `POST verify-email` (`{ email, code }`, 6-digit emailed code: valid 15 min, 5 attempts, per-address resend cooldown) · `POST resend-verification` ·
 `POST login` (→ `mfaRequired` + `mfaToken`) · `POST login/mfa` · `POST refresh` · `POST logout` · `GET me` ·
 `POST forgot-password` · `POST reset-password` · `POST passkey/options` · `POST passkey/verify`
 

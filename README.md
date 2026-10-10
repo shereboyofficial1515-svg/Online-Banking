@@ -11,8 +11,8 @@ A security-first digital banking web platform with an **internal software ledger
 
 ```
 Online Banking/
-├── backend/    Node.js · Express · Supabase PostgreSQL (pg) · REST API       → npm test (122 tests)
-├── frontend/   React 19 · Vite · React Router · GSAP · hand-written CSS      → npm test (31 tests)
+├── backend/    Node.js · Express · Supabase PostgreSQL (pg) · REST API       → npm test (126 tests)
+├── frontend/   React 19 · Vite · React Router · GSAP · hand-written CSS      → npm test (37 tests)
 ├── docs/       Architecture, API, security audit, compliance, Supabase setup
 ├── DEPLOYMENT.md   Vercel (frontend) + Render (backend) + Supabase, step by step
 └── render.yaml     Render Blueprint for the API

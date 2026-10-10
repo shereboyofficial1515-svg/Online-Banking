@@ -1,13 +1,13 @@
 import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { boot, shutdown, client, registrationBody, PASSWORD, login, makeCustomer, latestEmail, tokenFromEmail, uniqueEmail } from './helpers.js';
+import { boot, shutdown, client, registrationBody, PASSWORD, login, makeCustomer, latestEmail, tokenFromEmail, codeFromEmail, uniqueEmail } from './helpers.js';
 
 let app; let db;
 before(async () => { ({ app, db } = await boot()); });
 after(shutdown);
 
 describe('registration & email verification', () => {
-  test('registers, requires email verification, then allows sign-in', async () => {
+  test('registers, requires the emailed code, then allows sign-in', async () => {
     const c = client(app);
     const body = registrationBody();
     const reg = await c.post('/api/auth/register', body);
@@ -16,12 +16,14 @@ describe('registration & email verification', () => {
     const blocked = await login(c, body.email);
     assert.equal(blocked.status, 403);
     assert.equal(blocked.body.error.code, 'EMAIL_NOT_VERIFIED');
+    assert.equal(blocked.body.error.details.email, body.email, 'sign-in tells the (password-verified) user which address to verify');
 
     const mail = await latestEmail(db, body.email, 'email_verification');
     assert.ok(mail, 'verification email recorded');
-    const token = tokenFromEmail(mail);
-    assert.equal((await c.post('/api/auth/verify-email', { token })).status, 200);
-    assert.equal((await c.post('/api/auth/verify-email', { token })).status, 400, 'token is single use');
+    const code = codeFromEmail(mail);
+    assert.match(code, /^\d{6}$/);
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code })).status, 200);
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code })).status, 400, 'code is single use');
 
     const ok = await login(c, body.email);
     assert.equal(ok.status, 200);
@@ -30,6 +32,78 @@ describe('registration & email verification', () => {
     assert.doesNotMatch(JSON.stringify(ok.body), /argon2|password_?hash|mfa_?secret/i, 'no credential material in response');
     const me = await c.get('/api/auth/me');
     assert.equal(me.status, 200);
+  });
+
+  test('the verification email is professional: one message, code + button, no code in any URL, no negative wording', async () => {
+    const body = registrationBody();
+    await client(app).post('/api/auth/register', body);
+    const all = await db.query('SELECT template, subject, body_html FROM email_outbox WHERE to_email=$1', [body.email]);
+    assert.deepEqual(all.rows.map((r) => r.template), ['email_verification'], 'registration sends a single email');
+    const { subject, body_html: html } = all.rows[0];
+    assert.equal(subject, 'Your EWB Bank verification code');
+    const code = codeFromEmail(all.rows[0]);
+    assert.match(html, /Verify my email/);
+    assert.match(html, /valid for 15 minutes/);
+    const links = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(links.some((l) => /\/verify-email$/.test(l)), 'button opens the verification page');
+    assert.ok(links.every((l) => !l.includes(code) && !/token=|code=/.test(l)), 'the code never appears in a URL');
+    assert.doesNotMatch(html, /not currently|not insured|will never|not (a|an) |licen[cs]e|did not expect|secure your account|unauthori[sz]ed|fraud|warning/i);
+  });
+
+  test('wrong codes are counted; five misses invalidate the code and a fresh one works', async () => {
+    const c = client(app);
+    const body = registrationBody();
+    await c.post('/api/auth/register', body);
+    const good = codeFromEmail(await latestEmail(db, body.email, 'email_verification'));
+    const bad = good === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 4; i++) assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: bad })).status, 400);
+    const fifth = await c.post('/api/auth/verify-email', { email: body.email, code: bad });
+    assert.match(fifth.body.error.message, /Too many incorrect attempts/);
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: good })).status, 400, 'even the right code is dead after 5 misses');
+
+    await db.query("UPDATE auth_tokens SET created_at = now() - interval '5 minutes' WHERE user_id=(SELECT id FROM users WHERE email=$1)", [body.email]); // clear the resend cooldown
+    await c.post('/api/auth/resend-verification', { email: body.email });
+    const fresh = codeFromEmail(await latestEmail(db, body.email, 'email_verification'));
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: fresh })).status, 200);
+  });
+
+  test('codes expire after 15 minutes, resending replaces the old code, and resends are rate-limited per address', async () => {
+    const c = client(app);
+    const body = registrationBody();
+    await c.post('/api/auth/register', body);
+    const first = codeFromEmail(await latestEmail(db, body.email, 'email_verification'));
+    const uid = (await db.query('SELECT id FROM users WHERE email=$1', [body.email])).rows[0].id;
+
+    await c.post('/api/auth/resend-verification', { email: body.email });
+    assert.equal((await db.query("SELECT count(*)::int n FROM email_outbox WHERE to_email=$1 AND template='email_verification'", [body.email])).rows[0].n, 1, 'cooldown suppresses an immediate resend');
+
+    await db.query("UPDATE auth_tokens SET created_at = now() - interval '2 minutes' WHERE user_id=$1", [uid]);
+    await c.post('/api/auth/resend-verification', { email: body.email });
+    const second = codeFromEmail(await latestEmail(db, body.email, 'email_verification'));
+    if (second !== first) assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: first })).status, 400, 'the previous code stops working');
+
+    await db.query("UPDATE auth_tokens SET expires_at = now() - interval '1 minute' WHERE user_id=$1", [uid]);
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: second })).status, 400, 'expired code is rejected');
+  });
+
+  test('codes are stored only as keyed hashes, and the endpoint reveals nothing about accounts', async () => {
+    const c = client(app);
+    const body = registrationBody();
+    await c.post('/api/auth/register', body);
+    const code = codeFromEmail(await latestEmail(db, body.email, 'email_verification'));
+    const rows = (await db.query("SELECT token_hash FROM auth_tokens t JOIN users u ON u.id=t.user_id WHERE u.email=$1", [body.email])).rows;
+    assert.ok(rows.every((r) => r.token_hash !== code && !r.token_hash.includes(code) && /^[0-9a-f]{64}$/.test(r.token_hash)));
+
+    const known = await c.post('/api/auth/verify-email', { email: body.email, code: code === '000000' ? '111111' : '000000' });
+    const unknown = await c.post('/api/auth/verify-email', { email: uniqueEmail('ghost'), code: '123456' });
+    const verified = await makeCustomer();
+    const already = await c.post('/api/auth/verify-email', { email: verified.email, code: '123456' });
+    for (const r of [known, unknown, already]) assert.equal(r.status, 400);
+    assert.equal(known.body.error.message, unknown.body.error.message);
+    assert.equal(unknown.body.error.message, already.body.error.message);
+
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: '12ab56' })).status, 422, 'format is validated');
+    assert.equal((await c.post('/api/auth/verify-email', { email: body.email, code: '12345' })).status, 422);
   });
 
   test('creates a pending-review account and stores only an argon2id hash', async () => {

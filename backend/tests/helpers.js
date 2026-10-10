@@ -92,6 +92,7 @@ export async function latestEmail(db, to, template) {
   const { rows } = await db.query('SELECT * FROM email_outbox WHERE to_email=$1 AND template=$2 ORDER BY created_at DESC LIMIT 1', [to, template]);
   return rows[0];
 }
+export const codeFromEmail = (row) => row.body_html.match(/>(\d{6})</)[1];
 export const tokenFromEmail = (row, param = 'token') => row.body_html.match(new RegExp(`${param}=([\\w-]+)`))[1];
 
 export async function fund(app, db, accountId, amount = '1000.00', currency = 'USD') {
