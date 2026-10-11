@@ -104,7 +104,8 @@ describe('account security review', () => {
     assert.equal(ok.status, 200, JSON.stringify(ok.body));
     const done = (await c.get(`/api/withdrawals/${w.id}`)).body.withdrawal;
     assert.equal(done.status, 'approved');
-    assert.match(done.customerMessage, /no funds have been sent/i, 'never claims completion');
+    assert.match(done.customerMessage, /approved/i);
+    assert.doesNotMatch(done.customerMessage, /completed|paid out|sent to your/i, 'never claims completion');
     assert.equal((await L.balances(db, cust.accountId)).ledger, 10000, 'balance untouched');
   });
 

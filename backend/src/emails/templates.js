@@ -30,7 +30,7 @@ function layout({ preheader, heading, bodyHtml, security = true }) {
 <div style="font-size:15px;line-height:1.65">${bodyHtml}</div></td></tr>
 <tr><td style="padding:8px 32px 30px"><hr style="border:none;border-top:1px solid #E6E9EF;margin:18px 0">
 ${security ? `<p style="font-size:12.5px;line-height:1.6;color:#5B6678;margin:0 0 10px"><strong>Security tip:</strong> keep your password and verification codes private; they are only ever entered on the EWB Bank website. Questions about this message? Contact us at <a href="mailto:${esc(config.email.supportEmail)}" style="color:${NAVY}">${esc(config.email.supportEmail)}</a>.</p>` : ''}
-<p style="font-size:12px;line-height:1.6;color:#7C8799;margin:0">Sent ${esc(now)}. EWB Bank is a financial technology platform. Account balances are maintained by EWB Bank; see our <a href="${esc(config.appUrl)}/terms" style="color:#7C8799">Terms of Service</a> for details.</p>
+<p style="font-size:12px;line-height:1.6;color:#7C8799;margin:0">Sent ${esc(now)}. Learn more in our <a href="${esc(config.appUrl)}/terms" style="color:#7C8799">Terms of Service</a>.</p>
 </td></tr></table></td></tr></table></body></html>`;
 }
 

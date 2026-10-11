@@ -154,8 +154,8 @@ export const DEFAULT_SITE_CONFIG = {
       "title": "Frequently asked questions",
       "items": [
         {
-          "q": "Is EWB Bank a licensed bank? Are balances insured?",
-          "a": "EWB Bank is a financial technology platform and does not currently hold a banking licence, so balances are maintained by EWB Bank rather than held as insured deposits. Banking services will be provided through a licensed banking partner when they become available, and we will announce it here once that is in place."
+          "q": "How is my balance held?",
+          "a": "Your account balance is maintained by EWB Bank and equals the total of the completed transactions on your account. Every transaction is recorded permanently, and full details are in our Terms of Service."
         },
         {
           "q": "How is my balance calculated?",
@@ -187,7 +187,7 @@ export const DEFAULT_SITE_CONFIG = {
   "about": {
     "title": "About EWB Bank",
     "intro": "EWB Bank is a digital banking platform focused on security, transparency and a calm, clear experience.",
-    "body": "## What we do\nWe give customers one secure place to manage accounts, move funds between EWB accounts, request withdrawals and get help from a real support team.\n\n## How we work\n- Security first: passkeys, multi-factor authentication and session control are built in.\n- Transparency: every transaction is recorded permanently and can be traced.\n- Clarity: plain-language statuses and straightforward terms.\n\n## Where we are today\nEWB Bank is a financial technology platform. Banking services will be provided through a licensed banking partner when they become available, and we will announce it on this site once that is in place."
+    "body": "## What we do\nWe give customers one secure place to manage accounts, move funds between EWB accounts, request withdrawals and get help from a real support team.\n\n## How we work\n- Security first: passkeys, multi-factor authentication and session control are built in.\n- Transparency: every transaction is recorded permanently and can be traced.\n- Clarity: plain-language statuses and straightforward terms.\n\n## Our approach\nWe keep the experience simple: a clear view of your accounts, clear statuses for every request, and a support team that is easy to reach."
   }
 };
 export const LEGAL_ROUTES = {

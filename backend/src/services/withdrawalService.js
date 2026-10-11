@@ -22,7 +22,7 @@ export const MESSAGES = {
   under_review: 'Your account is undergoing an additional security review. Some transactions may require verification before they can be completed. We will notify you when the review is complete. No funds have been sent yet.',
   additional_verification_required: 'Your withdrawal is awaiting security verification. Complete identity verification so we can continue; we will notify you when it is reviewed. No funds have been sent yet.',
   customer_support_required: 'Our team needs to speak with you about this request before it can continue. Please open a Customer Support request. No funds have been sent.',
-  approved: 'Your request was approved in the internal review workflow. External bank transfers are not enabled, so no funds have been sent.',
+  approved: 'Your request has been approved. We will show any further status updates here.',
   rejected: 'Your request was not approved. If you have questions you can open a Customer Support request.',
   cancelled: 'This request was cancelled.',
 };

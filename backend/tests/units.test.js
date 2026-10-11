@@ -90,7 +90,7 @@ describe('email templates', () => {
       assert.match(html, /Security tip/);
       assert.match(html, /keep your password and verification codes private/);
       assert.match(html, /mailto:/);
-      assert.match(html, /balances are maintained by EWB Bank/);
+      assert.doesNotMatch(html, /licen[cs]e|technology platform|not insured/i, 'no negative disclaimer in the email footer');
       assert.doesNotMatch(html, /ledger/i, 'customer emails never use the word ledger');
       assert.match(html, /\/terms"/); // full terms one click away
       assert.ok(text.length > 40 && !/<[a-z]/.test(text), `${name} text part has markup`);

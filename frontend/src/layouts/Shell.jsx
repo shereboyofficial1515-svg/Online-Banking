@@ -108,7 +108,7 @@ export default function Shell({ mode, groups, bottomItems, footerNote }) {
         <main id="main" ref={main} tabIndex={-1} className="content" style={{ outline: 'none' }}>
           <ErrorBoundary resetKey={loc.pathname}><Outlet key={version} /></ErrorBoundary>
           {mode === 'customer' && (
-            <p className="disclosure">{DASHBOARD_NOTE} <Link to="/terms">Important information</Link></p>
+            <p className="disclosure">{DASHBOARD_NOTE} <Link to="/terms">Terms of Service</Link></p>
           )}
         </main>
         <nav className="bottom-nav" aria-label="Quick navigation">

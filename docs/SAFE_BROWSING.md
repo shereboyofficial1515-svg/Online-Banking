@@ -2,6 +2,8 @@
 
 Checked on 2026-10-11. Nothing here claims to know Google's current classification: the only Safe Browsing source I could reach was an **unofficial** Transparency Report endpoint, and its result is described below.
 
+> **Update (2026-10-11):** a screenshot from the owner's phone shows the EWB Bank site open at `banking-rust.vercel.app`, while every request I made from here to that host returned the Next.js "Boomine" app below. I cannot reconcile the two from here. Likely explanations: the Vercel project's production deployment was switched between the two apps, or different deployments/aliases answer differently. **Check Vercel (Project → Deployments/Domains) to see which deployment `banking-rust.vercel.app` points at.** The Safe Browsing findings below apply to whatever that host serves; if it served the Next.js app that asks for SSNs when the warning was recorded, that alone can explain it.
+
 ## 1. Which site shows the warning
 The screenshot domain is `banking-rust.vercel.app`. **That is not the EWB Bank application.**
 

@@ -92,15 +92,19 @@ describe('customer-facing content', () => {
     }
   });
 
-  it('keeps the required disclosure, stated factually and in one place', async () => {
-    const { DISCLOSURE } = await import('../lib/disclosures.js');
-    expect(DISCLOSURE).toMatch(/does not currently hold a banking licence/);
-    expect(DISCLOSURE).toMatch(/not insured deposits/);
-    expect(DISCLOSURE).toMatch(/when they become available/); // future partner is described as future, not as done
+  it('keeps licensing and balance statements out of the footer and marketing pages; the Terms state the facts neutrally', () => {
+    const visibleFiles = files.filter(([f]) => !/pages[\/]admin|legalDefaults|siteDefaults|disclosures/.test(f));
+    for (const [f, text] of visibleFiles) {
+      const visible = text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(visible, `${f} shows a negative licensing/insurance disclaimer`).not.toMatch(/does not (currently )?hold|not (a )?licen[cs]ed|unlicensed|not insured|no banking licen/i);
+    }
+    const site = files.find(([f]) => f.endsWith('siteDefaults.js'))[1];
+    expect(site).not.toMatch(/licen[cs]|insured|technology platform/i);
     const layouts = files.find(([f]) => f.endsWith('Layouts.jsx'))[1];
-    expect(layouts).toContain('{DISCLOSURE}');
-    const terms = files.find(([f]) => f.endsWith('legalDefaults.js'))[1]; // built-in Terms text (also served by the API)
-    expect(terms).toMatch(/not deposits with a bank|does not currently hold a banking licence/);
+    expect(layouts).not.toContain('DISCLOSURE');
+    const terms = files.find(([f]) => f.endsWith('legalDefaults.js'))[1]; // the one place the facts about balances are stated
+    expect(terms).toMatch(/not bank deposits or covered by deposit insurance/);
+    expect(terms).not.toMatch(/does not currently hold|not insured by any government/);
   });
 
   it('withdrawal copy still states that nothing was sent', () => {
