@@ -111,7 +111,8 @@ describe('staff withdrawal management', () => {
     const ok = await fc.post(`/api/admin/withdrawals/${id}/actions`, { action: 'approve', reason: 'Verified and funded', mfaCode: await freshCode(finance) });
     assert.equal(ok.status, 200, JSON.stringify(ok.body));
     assert.equal(ok.body.withdrawal.status, 'approved');
-    assert.match(ok.body.withdrawal.customerMessage, /no funds have been sent/i);
+    assert.match(ok.body.withdrawal.customerMessage, /approved/i);
+    assert.doesNotMatch(ok.body.withdrawal.customerMessage, /completed|paid out|sent to your/i, 'approval is never presented as completion');
 
     assert.equal((await L.balances(db, cust.accountId)).ledger, 30000, 'approval moves nothing');
     assert.equal((await db.query("SELECT count(*)::bigint n FROM ledger_entries WHERE account_id=$1", [cust.accountId])).rows[0].n, 1);

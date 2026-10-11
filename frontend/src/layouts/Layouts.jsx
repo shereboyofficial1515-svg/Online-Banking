@@ -8,7 +8,6 @@ import { Drawer } from '../components/ui/Overlay.jsx';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { SkeletonCard, ErrorState } from '../components/ui/Feedback.jsx';
-import { DISCLOSURE } from '../lib/disclosures.js';
 import ThemeSwitcher from '../components/ThemeSwitcher.jsx';
 import { usePrefs } from '../lib/PreferencesProvider.jsx';
 import { useSite } from '../lib/site.jsx';
@@ -126,7 +125,7 @@ export function PublicLayout() {
             <div><h3>Contact</h3><Link to="/contact">Contact us</Link>{config.contact.email && <a href={`mailto:${config.contact.email}`}>{config.contact.email}</a>}<Link to="/app/support">Open a request</Link></div>
           </div>
           <p className="legal-note footer-inner" style={{ gridColumn: '1 / -1' }}>
-            © {new Date().getFullYear()} {config.brand.siteName}. All rights reserved. {DISCLOSURE}
+            © {new Date().getFullYear()} {config.brand.siteName}. All rights reserved.
           </p>
         </div>
       </footer>

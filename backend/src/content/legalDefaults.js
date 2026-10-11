@@ -14,7 +14,7 @@ export const LEGAL_DEFAULTS = {
   terms: `By creating a profile you agree to these terms. Please read them together with our [Privacy Policy](/privacy).
 
 ## 1. Our service and important information
-EWB Bank provides digital account services. Balances are **maintained by EWB Bank**; they are not deposits with a bank and are not insured by any government scheme. EWB Bank does not currently hold a banking licence, and nothing on this platform is an offer of regulated banking, payment, card or investment services. Regulated services, when introduced, will be provided through appropriately licensed partners and will carry additional terms and eligibility checks.
+EWB Bank provides digital account services. Balances are **maintained by EWB Bank** and are not bank deposits or covered by deposit insurance. Any regulated services we introduce in future will come with their own terms and eligibility checks, which will be shown to you before you use them.
 
 ## 2. Your profile
 - You must be at least 18 and provide accurate information.

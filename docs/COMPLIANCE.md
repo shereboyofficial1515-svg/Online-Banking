@@ -7,7 +7,7 @@ bank, until the items below are complete. This is an engineering checklist, **no
 * `PaymentProvider` / `BankingProvider` are inert and throw `PROVIDER_NOT_CONFIGURED`.
 * `LEDGER_MODE=live` is refused at startup.
 * Withdrawals create requests only; UI and email copy state that no funds were sent.
-* The UI, emails and legal pages say balances are not deposits and that EWB Bank is not a licensed or insured institution.
+* The footer, marketing pages and emails carry no licensing or insurance claims or disclaimers. The Terms of Service (section 1) state neutrally that balances are maintained by EWB Bank and are not bank deposits or covered by deposit insurance; keep that statement accurate and have counsel review it.
   No FDIC/regulator/insurance claim exists anywhere; add one **only** after it is true and legally approved.
 
 ## Before enabling real funds (owner: legal/compliance)
