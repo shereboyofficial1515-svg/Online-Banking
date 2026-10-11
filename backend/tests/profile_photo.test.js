@@ -1,6 +1,7 @@
 import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { boot, shutdown, client, login, makeCustomer } from './helpers.js';
+import { providers } from '../src/providers/index.js';
 
 let app; let db;
 before(async () => { ({ app, db } = await boot()); });
@@ -55,5 +56,52 @@ describe('profile photo upload', () => {
     const atok = await a.c.csrfToken();
     assert.equal((await a.c.agent.post(`/api/users/${b.cust.user.id}/photo`).set('X-CSRF-Token', atok)).status, 404);
     assert.equal((await db.query('SELECT profile_photo_path FROM users WHERE id=$1', [b.cust.user.id])).rows[0].profile_photo_path, null);
+  });
+
+  test('the confirmed response carries the new profile; the photo version changes with each photo, so caches cannot mask it', async () => {
+    const { cust, c } = await signedIn();
+    const first = await send(c, PNG);
+    assert.equal(first.body.user.hasProfilePhoto, true);
+    assert.ok(first.body.user.profilePhotoVersion);
+    const second = await send(c, JPG, 'b.jpg', 'image/jpeg');
+    assert.notEqual(second.body.user.profilePhotoVersion, first.body.user.profilePhotoVersion);
+    assert.equal(JSON.stringify(second.body).includes(cust.user.id + '/'), false, 'storage path is never exposed');
+    const me = (await c.get('/api/users/me')).body.user;
+    assert.equal(me.profilePhotoVersion, second.body.user.profilePhotoVersion, 'a reload sees the same version');
+    assert.deepEqual(Buffer.from((await c.agent.get('/api/users/me/photo')).body), JPG);
+    // the replaced object was removed from storage
+    const files = [...providers().storage.files.keys()].filter((k) => k.includes(cust.user.id));
+    assert.equal(files.length, 1);
+  });
+
+  test('if saving the reference fails, the old photo is kept and the new object is not left behind', async () => {
+    const { cust, c } = await signedIn();
+    await send(c, PNG);
+    const before = (await db.query('SELECT profile_photo_path p FROM users WHERE id=$1', [cust.user.id])).rows[0].p;
+    await db.query("CREATE OR REPLACE FUNCTION test_block_photo() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'blocked for test'; END $$");
+    await db.query('CREATE TRIGGER test_block_photo_trg BEFORE UPDATE OF profile_photo_path ON users FOR EACH ROW EXECUTE FUNCTION test_block_photo()');
+    try {
+      const r = await send(c, JPG, 'b.jpg', 'image/jpeg');
+      assert.ok(r.status >= 400, String(r.status));
+      assert.notEqual(r.body.ok, true, 'no success is reported');
+    } finally {
+      await db.query('DROP TRIGGER test_block_photo_trg ON users');
+    }
+    assert.equal((await db.query('SELECT profile_photo_path p FROM users WHERE id=$1', [cust.user.id])).rows[0].p, before, 'reference unchanged');
+    assert.deepEqual(Buffer.from((await c.agent.get('/api/users/me/photo')).body), PNG, 'old photo still served');
+    assert.equal([...providers().storage.files.keys()].filter((k) => k.includes(cust.user.id)).length, 1, 'no orphaned file');
+  });
+
+  test('a storage failure leaves the existing photo untouched and reports an error', async () => {
+    const { cust, c } = await signedIn();
+    await send(c, PNG);
+    const storage = providers().storage; const put = storage.put;
+    storage.put = async () => { throw new Error('storage down'); };
+    try {
+      const r = await send(c, JPG, 'b.jpg', 'image/jpeg');
+      assert.ok(r.status >= 500, String(r.status));
+    } finally { storage.put = put; }
+    assert.deepEqual(Buffer.from((await c.agent.get('/api/users/me/photo')).body), PNG);
+    assert.equal((await db.query('SELECT profile_photo_path p FROM users WHERE id=$1', [cust.user.id])).rows[0].p !== null, true);
   });
 });

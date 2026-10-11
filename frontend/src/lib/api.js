@@ -48,13 +48,13 @@ async function fetchWithTimeout(url, init = {}) {
 let refreshing = null;
 const NO_REFRESH = ['/api/auth/login', '/api/auth/refresh', '/api/auth/register', '/api/auth/logout', '/api/auth/passkey', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/resend-verification', '/api/auth/login/mfa', '/api/auth/csrf', '/api/auth/config', '/api/auth/session'];
 
-async function raw(path, { method = 'GET', body, formData, signal } = {}) {
+async function raw(path, { method = 'GET', body, formData, signal, keepalive } = {}) {
   const headers = {};
   if (method !== 'GET') headers['X-CSRF-Token'] = await ensureCsrf();
   let payload;
   if (formData) payload = formData;
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
-  return fetchWithTimeout(apiUrl(path), { method, headers, body: payload, credentials: 'include', signal });
+  return fetchWithTimeout(apiUrl(path), { method, headers, body: payload, credentials: 'include', signal, ...(keepalive ? { keepalive: true } : {}) });
 }
 
 async function parse(res) {
@@ -79,6 +79,8 @@ export async function request(path, opts = {}) {
   if (res.status === 403) {
     const body = await res.clone().json().catch(() => null);
     if (body?.error?.code === 'CSRF_INVALID') { csrf = null; document.cookie = 'ewb_csrf=; Max-Age=0; path=/'; }
+    // The server locked this session (time away). Tell the app so it shows the lock screen straight away.
+    if (body?.error?.code === 'SESSION_LOCKED') window.dispatchEvent(new CustomEvent('ewb:session-locked'));
   }
   return parse(res);
 }
@@ -97,6 +99,8 @@ export const api = {
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path) => request(path, { method: 'DELETE' }),
   upload: (path, formData) => request(path, { method: 'POST', formData }),
+  /** Fire-and-forget POST that the browser completes even while the page is being hidden or closed. */
+  beacon: (path) => { request(path, { method: 'POST', body: {}, keepalive: true }).catch(() => {}); },
 };
 
 /** Map a 422 error's details ({field: [msgs]}) to {field: 'first message'} for forms. */

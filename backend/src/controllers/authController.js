@@ -2,6 +2,7 @@ import config from '../config/index.js';
 import * as auth from '../services/authService.js';
 import * as sessions from '../services/sessionService.js';
 import * as passkeys from '../services/passkeyService.js';
+import * as reauth from '../services/reauthService.js';
 import * as users from '../repositories/users.js';
 import { permissionsFor } from '../config/permissions.js';
 import { ACCESS_COOKIE, REFRESH_COOKIE, DEVICE_COOKIE } from '../middleware/authenticate.js';
@@ -54,6 +55,7 @@ export const publicConfig = (req, res) => res.json({
   identityProvider: config.identity.provider,
   supportEmail: config.email.supportEmail.endsWith('.invalid') ? null : config.email.supportEmail,
   maxUploadBytes: config.upload.maxBytes,
+  awayLockSeconds: config.auth.awayLockSeconds,
 });
 
 export const register = asyncHandler(async (req, res) => {
@@ -104,7 +106,9 @@ export const session = asyncHandler(async (req, res) => {
   if (token) {
     try {
       const { session: s, user } = await sessions.authenticate(token);
-      return res.json({ authenticated: true, ...sessionPayload(user, s) });
+      // A locked session reveals only what the lock screen needs. No profile, permissions, balances or contact details.
+      if (s.locked) return res.json({ authenticated: true, locked: true, lock: { firstName: user.first_name, emailHint: String(user.email).replace(/^(.).*(@.*)$/, '$1•••$2'), mfaRequired: !!user.mfa_enabled, passkeyAvailable: user.role === 'customer' && await passkeys.hasAny(user.id) } });
+      return res.json({ authenticated: true, locked: false, ...sessionPayload(user, s) });
     } catch { /* fall through: expired or revoked */ }
   }
   res.json({ authenticated: false, user: null, permissions: [], canRefresh: !!req.cookies?.[REFRESH_COOKIE] });
@@ -123,3 +127,11 @@ export const passkeyVerify = asyncHandler(async (req, res) => {
   const result = await passkeys.authenticate(req.ctx, req.body, deviceCookie(req, res));
   loginResponse(req, res, result);
 });
+
+// ───────── away tracking / session lock ─────────
+export const away = asyncHandler(async (req, res) => res.json(await reauth.markAway(req.auth.session)));
+export const back = asyncHandler(async (req, res) => res.json(await reauth.markBack(req.ctx, req.auth.session)));
+export const lock = asyncHandler(async (req, res) => res.json(await reauth.lock(req.ctx, req.auth.session)));
+export const unlock = asyncHandler(async (req, res) => res.json(await reauth.unlockWithPassword(req.ctx, req.auth.user, req.auth.session, req.body)));
+export const unlockPasskeyOptions = asyncHandler(async (req, res) => res.json(await reauth.passkeyOptions(req.auth.user)));
+export const unlockPasskeyVerify = asyncHandler(async (req, res) => res.json(await reauth.unlockWithPasskey(req.ctx, req.auth.user, req.auth.session, req.body)));

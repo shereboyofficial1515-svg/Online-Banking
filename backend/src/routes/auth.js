@@ -14,8 +14,16 @@ r.post('/resend-verification', authLimiter, validate(v.emailOnlySchema), c.resen
 r.post('/login', authLimiter, validate(v.loginSchema), c.login);
 r.post('/login/mfa', authLimiter, validate(v.loginMfaSchema), c.loginMfa);
 r.post('/refresh', authLimiter, c.refresh);
-r.post('/logout', requireAuth({ allowLimited: true }), c.logout);
+r.post('/logout', requireAuth({ allowLimited: true, allowLocked: true }), c.logout);
 r.get('/session', c.session);
+// Session lock: these are the only endpoints a locked session may reach (besides logout and session status).
+const locked = requireAuth({ allowLocked: true });
+r.post('/away', locked, c.away);
+r.post('/back', locked, c.back);
+r.post('/lock', locked, c.lock);
+r.post('/unlock', authLimiter, locked, validate(v.unlockSchema), c.unlock);
+r.post('/unlock/passkey/options', authLimiter, locked, c.unlockPasskeyOptions);
+r.post('/unlock/passkey/verify', authLimiter, locked, validate(v.unlockPasskeySchema), c.unlockPasskeyVerify);
 r.get('/me', requireAuth({ allowLimited: true }), c.me);
 r.post('/forgot-password', authLimiter, validate(v.emailOnlySchema), c.forgotPassword);
 r.post('/reset-password', authLimiter, validate(v.resetSchema), c.resetPassword);

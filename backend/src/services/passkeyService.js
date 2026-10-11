@@ -34,6 +34,10 @@ async function consumeChallenge(response, purpose, userId) {
 
 const dto = (p) => ({ id: p.id, name: p.name, deviceType: p.device_type, backedUp: p.backed_up, createdAt: p.created_at, lastUsedAt: p.last_used_at });
 
+export async function hasAny(userId) {
+  return (await getDb().query('SELECT 1 FROM passkeys WHERE user_id=$1 LIMIT 1', [userId])).rows.length > 0;
+}
+
 export async function list(userId) {
   const { rows } = await getDb().query('SELECT * FROM passkeys WHERE user_id=$1 ORDER BY created_at', [userId]);
   return rows.map(dto);
@@ -124,4 +128,33 @@ export async function authenticate(ctx, { response }, deviceCookie) {
   if (!user.email_verified_at) throw forbidden('Please verify your email address before signing in.', 'EMAIL_NOT_VERIFIED');
   // A verified passkey with user verification is itself multi-factor (possession + biometric/PIN).
   return auth.completeLogin(ctx, user, { method: 'passkey', mfaVerified: true, deviceCookie });
+}
+
+
+// ───────── re-authentication of an already signed-in user (session unlock) ─────────
+/** Options limited to this user's own credentials. */
+export async function unlockOptions(user) {
+  const { rows } = await getDb().query('SELECT credential_id, transports FROM passkeys WHERE user_id=$1', [user.id]);
+  if (!rows.length) throw badRequest('You have no passkeys registered.');
+  const options = await generateAuthenticationOptions({ rpID: rpId, userVerification: 'required', allowCredentials: rows.map((r) => ({ id: r.credential_id, transports: r.transports || undefined })) });
+  await saveChallenge(user.id, 'authenticate', options.challenge);
+  return options;
+}
+
+/** Verifies a WebAuthn assertion for one of THIS user's passkeys (signature, origin, RP ID, user verification, counter). */
+export async function verifyForUser(user, response) {
+  const expectedChallenge = await consumeChallenge(response, 'authenticate', user.id);
+  const db = getDb();
+  const { rows } = await db.query('SELECT * FROM passkeys WHERE credential_id=$1 AND user_id=$2', [response?.id ?? '', user.id]);
+  const pk = rows[0];
+  if (!pk) throw unauthorized('We could not verify that passkey.', 'INVALID_CREDENTIALS');
+  let result;
+  try {
+    result = await verifyAuthenticationResponse({
+      response, expectedChallenge, expectedOrigin: origins, expectedRPID: rpId, requireUserVerification: true,
+      credential: { id: pk.credential_id, publicKey: fromB64(pk.public_key), counter: Number(pk.counter), transports: pk.transports },
+    });
+  } catch { throw unauthorized('We could not verify that passkey.', 'INVALID_CREDENTIALS'); }
+  if (!result.verified) throw unauthorized('We could not verify that passkey.', 'INVALID_CREDENTIALS');
+  await db.query('UPDATE passkeys SET counter=$2, last_used_at=now() WHERE id=$1', [pk.id, result.authenticationInfo.newCounter]);
 }

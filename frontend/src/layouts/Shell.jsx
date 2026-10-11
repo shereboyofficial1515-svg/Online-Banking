@@ -10,6 +10,8 @@ import { initials } from '../lib/format.js';
 import { useEnter } from '../lib/motion.js';
 import ThemeSwitcher from '../components/ThemeSwitcher.jsx';
 import { usePrefs } from '../lib/PreferencesProvider.jsx';
+import Avatar from '../components/Avatar.jsx';
+import LogoutDialog from '../components/LogoutDialog.jsx';
 import { DASHBOARD_NOTE } from '../lib/disclosures.js';
 
 function NavList({ groups, onNavigate, badges }) {
@@ -29,6 +31,7 @@ function NavList({ groups, onNavigate, badges }) {
 function UserMenu({ mode }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const [confirmOut, setConfirmOut] = useState(false);
   const ref = useRef(null);
   const nav = useNavigate();
   useEffect(() => {
@@ -41,16 +44,17 @@ function UserMenu({ mode }) {
   return (
     <div className="menu-wrap" ref={ref}>
       <button type="button" className="icon-btn" style={{ width: 44 }} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" onClick={() => setOpen((o) => !o)}>
-        <span className="avatar">{initials(user)}</span>
+        <Avatar />
       </button>
       {open && (
         <div className="menu" role="menu">
           <div className="menu-head"><strong>{user.firstName} {user.lastName}</strong><span>{user.email}</span></div>
           {mode === 'customer' && <Link to="/app/settings/profile" role="menuitem" onClick={() => setOpen(false)}><Icon name="user" size={18} /> Profile</Link>}
           <Link to={mode === 'customer' ? '/app/security' : '/admin/security-center'} role="menuitem" onClick={() => setOpen(false)}><Icon name="shield" size={18} /> Security</Link>
-          <button type="button" role="menuitem" onClick={async () => { await logout(); nav('/login'); }}><Icon name="logout" size={18} /> Sign out</button>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); setConfirmOut(true); }}><Icon name="logout" size={18} /> Log out</button>
         </div>
       )}
+      <LogoutDialog open={confirmOut} onClose={() => setConfirmOut(false)} onConfirm={async () => { await logout(); setConfirmOut(false); nav('/login', { replace: true }); }} />
     </div>
   );
 }
@@ -118,7 +122,7 @@ export default function Shell({ mode, groups, bottomItems, footerNote }) {
           <button type="button" className={`bottom-item ${drawer ? 'active' : ''}`} onClick={() => setDrawer(true)} aria-haspopup="dialog"><Icon name="menu" size={22} /><span>More</span></button>
         </nav>
       </div>
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title={`${user.firstName} ${user.lastName}`}>
+      <Drawer open={drawer} onClose={() => setDrawer(false)} title={<span className="drawer-who"><Avatar size={36} /><span>{user.firstName} {user.lastName}</span></span>}>
         <nav aria-label="All pages"><NavList groups={groups} badges={badges} onNavigate={() => setDrawer(false)} /></nav>
       </Drawer>
     </div>

@@ -247,3 +247,15 @@ a.settings-item:hover { background: var(--hover); color: var(--text); }
 .drawer .nav-item.active::before { display: none; }
 .drawer .nav-item > svg { color: var(--text-muted); } .drawer .nav-item.active > svg { color: var(--accent-text, var(--accent)); }
 @media (max-height: 640px) { .drawer .nav-item { padding-top: 9px; padding-bottom: 9px; min-height: 40px; } .drawer .nav-group-label { padding-top: 10px; } .drawer .modal-head { min-height: 56px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 8px; } }
+
+/* Session lock screen: opaque, above everything, content underneath is hidden and inert */
+[data-locked="true"] { visibility: hidden; }
+.lock-screen { position: fixed; inset: 0; z-index: 400; background: var(--bg); display: grid; place-items: center; padding: 16px; overflow-y: auto;
+  padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.lock-card { width: 100%; max-width: 420px; display: grid; gap: 14px; justify-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg, 16px); padding: 28px 24px; box-shadow: var(--shadow-lg); }
+.lock-card .logo { justify-self: center; } .lock-card h1 { text-align: center; font-size: 1.4rem; margin: 0; } .lock-card p { text-align: center; margin: 0; }
+.lock-icon { justify-self: center; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent-text, var(--accent)); }
+.lock-leave { justify-self: center; padding: 8px; min-height: 44px; }
+.drawer-who { display: inline-flex; align-items: center; gap: 12px; min-width: 0; } .drawer-who > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.avatar { overflow: hidden; }

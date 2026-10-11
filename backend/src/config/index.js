@@ -64,6 +64,9 @@ const config = {
     customerSessionDays: int(process.env.CUSTOMER_SESSION_DAYS, 14),
     adminIdleMinutes: int(process.env.ADMIN_IDLE_MINUTES, 30),
     adminSessionHours: int(process.env.ADMIN_SESSION_HOURS, 8),
+    // Time away from the site after which a session is locked on the server and needs the password (or a passkey) again.
+    awayLockSeconds: Math.max(5, int(process.env.AWAY_LOCK_SECONDS, 60)),
+    maxUnlockFailures: int(process.env.MAX_UNLOCK_FAILURES, 5),
     maxFailedLogins: int(process.env.MAX_FAILED_LOGINS, 5),
     lockMinutes: int(process.env.LOCK_MINUTES, 15),
     cookieSecure: bool(process.env.COOKIE_SECURE, perEnv.cookieSecure),

@@ -102,7 +102,14 @@ export async function authenticate(accessToken) {
   if (!s || s.revoked_at || new Date(s.expires_at) < new Date() || new Date(s.idle_expires_at) < new Date()) throw unauthorized('Your session has ended. Please sign in again.', 'SESSION_ENDED');
   const user = typeof s.user_json === 'string' ? JSON.parse(s.user_json) : s.user_json;
   if (['locked', 'rejected'].includes(user.status)) throw unauthorized('Your session has ended. Please sign in again.', 'SESSION_ENDED');
-  if (Date.now() - new Date(s.last_seen_at).getTime() > 60_000) db.query('UPDATE sessions SET last_seen_at=now() WHERE id=$1', [s.id]).catch(() => {});
+  // Server-side lock: either explicitly locked, or the user has been away longer than the limit. Evaluated with the server
+  // clock on every request, so it does not depend on any browser timer and a stale token cannot get around it.
+  if (!s.locked_at && s.away_since && Date.now() - new Date(s.away_since).getTime() >= config.auth.awayLockSeconds * 1000) {
+    const r = await db.query('UPDATE sessions SET locked_at=now() WHERE id=$1 AND locked_at IS NULL RETURNING locked_at', [s.id]);
+    s.locked_at = r.rows[0]?.locked_at || new Date();
+  }
+  s.locked = !!s.locked_at;
+  if (!s.locked && Date.now() - new Date(s.last_seen_at).getTime() > 60_000) db.query('UPDATE sessions SET last_seen_at=now() WHERE id=$1', [s.id]).catch(() => {});
   return { session: s, user };
 }
 

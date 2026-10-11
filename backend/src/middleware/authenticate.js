@@ -12,11 +12,12 @@ export const DEVICE_COOKIE = 'ewb_did';
  * database. Nothing the client sends (ids, roles, balances) is ever used as an authority.
  * `allowLimited` lets staff who have not enrolled MFA reach only the enrolment endpoints.
  */
-export const requireAuth = ({ allowLimited = false } = {}) => asyncHandler(async (req, res, next) => {
+export const requireAuth = ({ allowLimited = false, allowLocked = false } = {}) => asyncHandler(async (req, res, next) => {
   const token = req.cookies?.[ACCESS_COOKIE];
   if (!token) throw unauthorized();
   const { session, user } = await sessions.authenticate(token);
   if (session.limited && !allowLimited) throw forbidden('Multi-factor authentication must be set up before you can continue.', 'MFA_ENROLLMENT_REQUIRED');
+  if (session.locked && !allowLocked) throw forbidden('Your session is locked. Please confirm it is you to continue.', 'SESSION_LOCKED');
   req.auth = { user, session };
   req.ctx.actor = { id: user.id, role: user.role };
   req.ctx.sessionId = session.id;

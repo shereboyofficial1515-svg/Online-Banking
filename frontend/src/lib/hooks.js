@@ -20,6 +20,8 @@ export function useApi(path, params, { enabled = true } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled]);
   useEffect(() => { load(); }, [load]);
+  // After the session is unlocked, pages that were refused while locked fetch again (forms and other state are untouched).
+  useEffect(() => { const again = () => load(true); window.addEventListener('ewb:unlocked', again); return () => window.removeEventListener('ewb:unlocked', again); }, [load]);
   return { ...state, reload: () => load(true), refetch: () => load(false) };
 }
 
