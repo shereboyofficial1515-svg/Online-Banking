@@ -217,3 +217,33 @@ a.settings-item:hover { background: var(--hover); color: var(--text); }
   .profile-actions { padding-top: 0; border-top: 0; justify-items: end; } .profile-actions .btn { width: auto; } .profile-actions p { text-align: right; }
 }
 .auth-top { flex-wrap: wrap; gap: 10px 14px; } .auth-top > span { min-width: 0; } .auth-top .row { flex-wrap: wrap; justify-content: flex-end; }
+
+/* ── Navigation refinement: balanced spacing, aligned icons/labels, safe areas ───────────────────────────────── */
+.nav-item { gap: 14px; padding: 12px 14px; line-height: 1.25; }
+.nav-item > svg, .nav-item > .icon { flex: none; width: 20px; height: 20px; }
+.nav-item > span:not(.nav-badge) { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-badge { flex: none; margin-left: auto; line-height: 1.5; }
+.nav-group-label { padding: 20px 14px 8px; }
+
+/* Desktop sidebar: same rhythm; the active marker sits on the sidebar edge */
+.sidebar { padding: 24px 16px; }
+.sidebar nav > div + div { margin-top: 4px; }
+.nav-item.active::before { left: -16px; }
+
+/* Mobile drawer */
+.drawer { height: 100vh; height: 100dvh; max-height: 100dvh; width: min(86vw, 340px); }
+.drawer .modal-head { padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px 20px; border-bottom: 1px solid var(--border); flex: none; min-height: 64px; }
+.drawer .modal-head h2 { font-size: 1.05rem; line-height: 1.3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer .modal-head .icon-btn { flex: none; width: 44px; height: 44px; margin-right: -6px; }
+.drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 10px 12px calc(28px + env(safe-area-inset-bottom, 0px)); }
+.drawer-body nav { display: flex; flex-direction: column; }
+.drawer-body nav > div { display: grid; gap: 2px; }
+.drawer-body nav > div + div { margin-top: 8px; padding-top: 2px; border-top: 1px solid var(--border); }
+.drawer-body nav > div:first-child { padding-top: 6px; }
+.drawer .nav-group-label { padding: 14px 14px 6px; }
+.drawer .nav-item { padding: 12px 14px; }
+.drawer .nav-item.active { box-shadow: inset 3px 0 0 var(--accent); }
+.drawer .nav-item.active::before { display: none; }
+.drawer .nav-item > svg { color: var(--text-muted); } .drawer .nav-item.active > svg { color: var(--accent-text, var(--accent)); }
+@media (max-height: 640px) { .drawer .nav-item { padding-top: 9px; padding-bottom: 9px; min-height: 40px; } .drawer .nav-group-label { padding-top: 10px; } .drawer .modal-head { min-height: 56px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 8px; } }
