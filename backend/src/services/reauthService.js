@@ -13,6 +13,7 @@ import * as audit from './auditService.js';
 import * as sessions from './sessionService.js';
 import * as mfa from './mfaService.js';
 import * as passkeys from './passkeyService.js';
+import * as pins from './pinService.js';
 import { verifyPassword } from '../utils/passwords.js';
 import { forbidden, unauthorized, validationError } from '../utils/errors.js';
 
@@ -32,7 +33,8 @@ export async function markBack(ctx, session) {
     await lock(ctx, session, 'away_timeout');
     return { locked: true };
   }
-  if (session.away_since) await db.query('UPDATE sessions SET away_since=NULL WHERE id=$1', [session.id]);
+  // "back" is only sent while the person is actually using the page, so it doubles as the activity heartbeat the server's idle lock relies on.
+  await db.query('UPDATE sessions SET away_since=NULL, activity_at=now() WHERE id=$1', [session.id]);
   return { locked: false };
 }
 
@@ -46,7 +48,7 @@ export async function lock(ctx, session, reason = 'client_timeout') {
 
 async function release(ctx, session, method) {
   const db = getDb();
-  await db.query('UPDATE sessions SET locked_at=NULL, away_since=NULL, unlock_failures=0, last_seen_at=now() WHERE id=$1', [session.id]);
+  await db.query('UPDATE sessions SET locked_at=NULL, away_since=NULL, activity_at=now(), unlock_failures=0, last_seen_at=now() WHERE id=$1', [session.id]);
   await audit.record(db, ctx, { action: 'session.unlock', targetType: 'session', targetId: session.id, metadata: { method } });
   return { locked: false };
 }
@@ -61,8 +63,33 @@ async function failure(ctx, session) {
   }
 }
 
-export async function unlockWithPassword(ctx, user, session, { password, code }) {
+const isCustomer = (u) => u.role === 'customer';
+
+/** Customers unlock with their six-digit PIN. */
+export async function unlockWithPin(ctx, user, session, { pin }) {
   if (!session.locked_at) return { locked: false };
+  if (!isCustomer(user)) throw forbidden('Use your password and authenticator code to unlock.', 'PIN_NOT_FOR_STAFF');
+  const r = await pins.verifyForUnlock(ctx, user, pin);
+  if (!r.ok) {
+    await failure(ctx, session);
+    if (r.endSession) { await sessions.revoke(session.id, 'too_many_pin_failures'); throw unauthorized('Too many incorrect PIN attempts. For your security you have been signed out.', 'SESSION_ENDED'); }
+    throw validationError({ pin: ['That PIN is incorrect.'] });
+  }
+  return release(ctx, session, 'pin');
+}
+
+/**
+ * Password unlock. Staff always use this (password + authenticator code). A customer who forgot their PIN may use it only together
+ * with a NEW PIN, which replaces the old one (the recovery path), so the password is never a silent everyday alternative.
+ */
+export async function unlockWithPassword(ctx, user, session, { password, code, newPin }) {
+  if (!session.locked_at) return { locked: false };
+  if (isCustomer(user)) {
+    if (!newPin) throw validationError({ newPin: ['Enter a new 6-digit PIN to continue.'] });
+    // setPin verifies the password (and authenticator code if MFA is on) exactly once, then stores the new PIN.
+    try { await pins.setPin(ctx, user, { pin: newPin, password, code }); } catch (e) { if (e?.details?.password || e?.code === 'MFA_STEP_UP_FAILED') await failure(ctx, session); throw e; }
+    return release(ctx, session, 'password_pin_reset');
+  }
   if (!(await verifyPassword(user.password_hash, password))) {
     await failure(ctx, session);
     throw validationError({ password: ['That password is incorrect.'] });
@@ -74,12 +101,14 @@ export async function unlockWithPassword(ctx, user, session, { password, code })
 }
 
 export async function passkeyOptions(user) {
+  if (user.unlock_passkey_enabled === false) throw forbidden('Passkey unlock is turned off in your security settings.', 'PASSKEY_UNLOCK_OFF');
   if (!passkeyAllowed(user)) throw forbidden('Passkeys are not available for this account.', 'PASSKEY_NOT_ALLOWED');
   return passkeys.unlockOptions(user);
 }
 
 export async function unlockWithPasskey(ctx, user, session, { response }) {
   if (!session.locked_at) return { locked: false };
+  if (user.unlock_passkey_enabled === false) throw forbidden('Passkey unlock is turned off in your security settings.', 'PASSKEY_UNLOCK_OFF');
   if (!passkeyAllowed(user)) throw forbidden('Passkeys are not available for this account.', 'PASSKEY_NOT_ALLOWED');
   try { await passkeys.verifyForUser(user, response); } catch (e) { await failure(ctx, session); throw e; }
   return release(ctx, session, 'passkey');

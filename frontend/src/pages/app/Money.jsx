@@ -9,6 +9,7 @@ import { api, fieldErrors } from '../../lib/api.js';
 import { dateTime, money, uuid } from '../../lib/format.js';
 import { usePrefs } from '../../lib/PreferencesProvider.jsx';
 import Icon from '../../components/ui/Icon.jsx';
+import MaintenanceNotice from '../../components/MaintenanceNotice.jsx';
 
 const toMinor = (s) => Math.round(parseFloat(s) * 100);
 
@@ -33,6 +34,8 @@ export function Transfers({ mode = 'ewb', savingsAccounts = [] }) {
   const [key, setKey] = useState(uuid());
   const [done, setDone] = useState(null);
   const [err, setErr] = useState(null);
+  const [maint, setMaint] = useState(null); // { email } when the server says transfers are in maintenance
+  const feat = useApi('/api/features');
 
   if (acc.loading || ver.loading) return <SkeletonCard lines={5} />;
   if (acc.error) return <ErrorState error={acc.error} onRetry={acc.refetch} />;
@@ -49,12 +52,23 @@ export function Transfers({ mode = 'ewb', savingsAccounts = [] }) {
     else if (from && toMinor(f.amount) > from.availableBalance) e.amount = `Amount exceeds your available balance of ${money(from.availableBalance, from.currency)}.`;
     return e;
   };
-  const toReview = (e) => { e.preventDefault(); const v = validate(); setFe(v); if (!Object.keys(v).length) { setErr(null); setReview(true); } };
+  const toReview = (e) => {
+    e.preventDefault(); const v = validate(); setFe(v);
+    if (Object.keys(v).length) return;
+    setErr(null);
+    // The maintenance message appears when the customer tries to go ahead, not when the page opens. The server enforces it either way.
+    if (feat.data && feat.data.transfers?.enabled === false) { setMaint({ email: feat.data.supportEmail }); return; }
+    setReview(true);
+  };
   const submit = async () => {
     try {
       const r = await api.post('/api/transactions/transfers', { fromAccountId: from.id, toAccountNumber: f.toAccountNumber.trim().toUpperCase(), amount: f.amount, description: f.description || undefined, idempotencyKey: key });
       setDone(r.transaction); acc.refetch(); toast.success('Transfer completed.');
-    } catch (ex) { setFe(fieldErrors(ex)); setErr(ex); setReview(false); throw ex; }
+    } catch (ex) {
+      setReview(false);
+      if (ex.code === 'TRANSFERS_UNAVAILABLE') { setMaint({ email: ex.details?.supportEmail ?? feat.data?.supportEmail ?? null }); return; }
+      setFe(fieldErrors(ex)); setErr(ex); throw ex;
+    }
   };
 
   if (done) {
@@ -76,6 +90,7 @@ export function Transfers({ mode = 'ewb', savingsAccounts = [] }) {
       <PageHeader title={saving ? t('save.title') : t('transfer.ewb')} subtitle={saving ? t('save.intro') : t('transfer.ewb.desc')} />
       {!verified && <Alert tone="warning" title="Identity verification required" action={<Button size="sm" to="/app/verification">Verify now</Button>}>You need to verify your identity before making transfers.</Alert>}
       {!acc.activeList.length && <Alert tone="info" title="No active account">Transfers are available once your account is approved and active.</Alert>}
+      {maint && <MaintenanceNotice email={maint.email} onClose={() => setMaint(null)} />}
       {err && <Alert tone="danger">{err.message}</Alert>}
       <Card>
         <form onSubmit={toReview} noValidate>
@@ -106,93 +121,6 @@ export function Transfers({ mode = 'ewb', savingsAccounts = [] }) {
         </dl>
         <p className="muted small">Transfers between EWB accounts are final once recorded. Corrections are made by Customer Support with a new, clearly referenced transaction.</p>
       </ConfirmDialog>
-    </div>
-  );
-}
-
-const NOTICE = 'Submit a request and follow its status here. Requests can go through a security check before they are processed, and you will be notified when the status changes. Submitting a request does not itself move funds.';
-const REVIEW_NOTICE = 'Your account is undergoing an additional security review. Some transactions may require verification before they can be completed. We will notify you when the review is complete.';
-/** The one action a customer can take for a given status, when there genuinely is one. */
-const nextStep = (w) => (w.status === 'additional_verification_required' ? <Link to="/app/verification">Continue identity verification</Link> : w.status === 'customer_support_required' ? <Link to="/app/support/new">Open a support request</Link> : null);
-
-export function Withdrawals() {
-  useDocumentTitle('Withdrawals');
-  const toast = useToast();
-  const acc = useAccounts();
-  const list = useApi('/api/withdrawals');
-  const [f, setF] = useState({ accountId: '', amount: '', bankName: '', accountName: '', last4: '', note: '' });
-  const [fe, setFe] = useState({});
-  const [err, setErr] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
-  const [cancelId, setCancelId] = useState(null);
-  const [wdKey, setWdKey] = useState(uuid());
-
-  if (acc.loading || list.loading) return <SkeletonCard lines={5} />;
-  if (acc.error) return <ErrorState error={acc.error} onRetry={acc.refetch} />;
-  const account = acc.list.find((a) => a.id === (f.accountId || acc.activeList[0]?.id));
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-
-  const submit = async (e) => {
-    e.preventDefault(); setErr(null); setResult(null);
-    const v = {};
-    if (!/^\d{1,9}(\.\d{1,2})?$/.test(f.amount) || toMinor(f.amount) <= 0) v.amount = 'Enter a valid amount.';
-    else if (account && toMinor(f.amount) > account.availableBalance) v.amount = `Amount exceeds your available balance of ${money(account.availableBalance, account.currency)}.`;
-    if (f.bankName.trim().length < 2) v.bankName = 'Enter the destination bank name.';
-    if (f.accountName.trim().length < 2) v.accountName = 'Enter the account holder name.';
-    if (!/^\d{4}$/.test(f.last4)) v.last4 = 'Enter exactly 4 digits.';
-    setFe(v);
-    if (Object.keys(v).length) return;
-    setBusy(true);
-    try {
-      const r = await api.post('/api/withdrawals', { accountId: account.id, amount: f.amount, bankName: f.bankName, accountName: f.accountName, last4: f.last4, note: f.note || undefined, idempotencyKey: wdKey });
-      setResult(r); setWdKey(uuid()); setF({ ...f, amount: '', note: '' }); list.reload(); acc.reload();
-    } catch (ex) { setErr(ex); setFe(fieldErrors(ex)); } finally { setBusy(false); }
-  };
-  const cancel = async () => { await api.post(`/api/withdrawals/${cancelId}/cancel`); toast.success('Request cancelled.'); list.reload(); acc.reload(); };
-
-  return (
-    <div className="stack">
-      <PageHeader title="Withdrawals" subtitle="Request a withdrawal and follow its status." />
-      <Alert tone="info" title="How withdrawals work">{NOTICE}</Alert>
-      {account?.securityReview && <Alert tone="info" title="Additional security review">{REVIEW_NOTICE}</Alert>}
-      {result && (
-        <Alert tone="info" title={`Request ${result.withdrawal.reference} — ${result.withdrawal.statusLabel}`}>
-          {result.message} {nextStep(result.withdrawal)}
-        </Alert>
-      )}
-      {err && <Alert tone="danger">{err.message}</Alert>}
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <Card title="New withdrawal request">
-          {!acc.activeList.length ? <EmptyState icon="lock" title="No active account">Withdrawal requests are available once your account is approved.</EmptyState> : (
-            <form onSubmit={submit} noValidate>
-              {acc.activeList.length > 1 && <Field label="From account">{(p) => <Select {...p} value={account.id} onChange={set('accountId')}>{acc.activeList.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.accountNumber.slice(-4)})</option>)}</Select>}</Field>}
-              <p className="muted small" style={{ marginTop: -4 }}>Available: <strong>{money(account.availableBalance, account.currency)}</strong></p>
-              <Field label={`Amount (${account.currency})`} error={fe.amount} required>{(p) => <Input {...p} inputMode="decimal" placeholder="0.00" autoComplete="off" value={f.amount} onChange={set('amount')} />}</Field>
-              <Field label="Destination bank name" error={fe.bankName} required>{(p) => <Input {...p} autoComplete="off" value={f.bankName} onChange={set('bankName')} />}</Field>
-              <Field label="Account holder name" error={fe.accountName} required>{(p) => <Input {...p} autoComplete="off" value={f.accountName} onChange={set('accountName')} />}</Field>
-              <Field label="Last 4 digits of destination account" error={fe.last4} hint="We only store the last four digits." required>{(p) => <Input {...p} inputMode="numeric" maxLength={4} autoComplete="off" value={f.last4} onChange={(e) => setF({ ...f, last4: e.target.value.replace(/\D/g, '') })} />}</Field>
-              <Field label="Note (optional)" error={fe.note}>{(p) => <Textarea {...p} style={{ minHeight: 80 }} maxLength={300} value={f.note} onChange={set('note')} />}</Field>
-              <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>Submit request</Button>
-            </form>
-          )}
-        </Card>
-        <Card title="Your requests">
-          {list.data?.withdrawals?.length ? (
-            <ul>
-              {list.data.withdrawals.map((w) => (
-                <li key={w.id} className="notif" style={{ flexDirection: 'column', gap: 6 }}>
-                  <div className="row-between"><strong>{money(w.amount, w.currency)}</strong><Badge status={w.status} /></div>
-                  <div className="muted small">{w.destination.bankName} ••••{w.destination.last4} · <span className="mono">{w.reference}</span> · {dateTime(w.createdAt)}</div>
-                  <div className="small">{w.customerMessage} {nextStep(w)}</div>
-                  {['requested', 'under_review', 'additional_verification_required', 'customer_support_required'].includes(w.status) && <div><Button size="sm" variant="secondary" onClick={() => setCancelId(w.id)}>Cancel request</Button></div>}
-                </li>
-              ))}
-            </ul>
-          ) : <EmptyState icon="upload" title="No requests yet">Requests you submit are listed here with their real status.</EmptyState>}
-        </Card>
-      </div>
-      <ConfirmDialog open={!!cancelId} onClose={() => setCancelId(null)} onConfirm={cancel} title="Cancel this request?" message="The request will be closed and the held amount becomes available again." confirmLabel="Cancel request" tone="danger" />
     </div>
   );
 }

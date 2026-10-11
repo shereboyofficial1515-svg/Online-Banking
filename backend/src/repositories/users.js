@@ -61,6 +61,9 @@ export function toPublic(u) {
     emailVerified: !!u.email_verified_at,
     verificationStatus: u.verification_status,
     mfaEnabled: u.mfa_enabled,
+    // The PIN hash never leaves the server: clients only learn whether a PIN exists.
+    pinSet: !!u.session_pin_hash,
+    unlockPasskeyEnabled: u.unlock_passkey_enabled !== false,
     hasProfilePhoto: !!u.profile_photo_path,
     // Changes whenever the photo changes (it is the random object name, not the storage path); the client puts it in the image
     // URL so a new photo is never masked by a cached old one and an unchanged photo stays cached.

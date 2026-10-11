@@ -66,6 +66,10 @@ const config = {
     adminSessionHours: int(process.env.ADMIN_SESSION_HOURS, 8),
     // Time away from the site after which a session is locked on the server and needs the password (or a passkey) again.
     awayLockSeconds: Math.max(5, int(process.env.AWAY_LOCK_SECONDS, 60)),
+    // Inactivity lock: the browser locks after idleLockSeconds without user activity; the server independently locks a session whose
+    // last activity heartbeat is older than idleLockSeconds + idleGraceSeconds, so removing the browser code does not help.
+    idleLockSeconds: Math.max(10, int(process.env.IDLE_LOCK_SECONDS, 60)),
+    idleGraceSeconds: Math.max(5, int(process.env.IDLE_LOCK_GRACE_SECONDS, 30)),
     maxUnlockFailures: int(process.env.MAX_UNLOCK_FAILURES, 5),
     maxFailedLogins: int(process.env.MAX_FAILED_LOGINS, 5),
     lockMinutes: int(process.env.LOCK_MINUTES, 15),
@@ -116,6 +120,10 @@ const config = {
     localDir: process.env.LOCAL_UPLOAD_DIR || './.data/uploads',
   },
   rateLimit: { enabled: bool(process.env.RATE_LIMIT_ENABLED, env !== 'test') },
+  features: {
+    // Customer-initiated withdrawal requests were retired from the customer app. The staff workflow for existing records is unchanged.
+    withdrawalRequests: bool(process.env.WITHDRAWAL_REQUESTS_ENABLED, false),
+  },
   seedEnabled: bool(process.env.ALLOW_SEED, !isProd),
 };
 

@@ -107,9 +107,13 @@ describe('customer-facing content', () => {
     expect(terms).not.toMatch(/does not currently hold|not insured by any government/);
   });
 
-  it('withdrawal copy still states that nothing was sent', () => {
+  it('the customer app no longer offers withdrawal requests; the overview has exactly To EWB, To Bank and Save', () => {
     const money = files.find(([f]) => f.endsWith('Money.jsx'))[1];
-    expect(money).toMatch(/does not itself move funds/);
-    expect(money).not.toMatch(/contact (EWB Bank )?Customer Support/i); // no blanket customer-care instruction
+    expect(money).not.toMatch(/api\/withdrawals/);
+    const overview = files.find(([f]) => f.endsWith('Overview.jsx'))[1];
+    expect(overview).not.toMatch(/Request withdrawal|\/app\/withdrawals/);
+    expect(overview).toMatch(/transfer\.ewb/); expect(overview).toMatch(/transfer\.bank/); expect(overview).toMatch(/transfer\.save/);
+    const layouts = files.find(([f]) => f.endsWith('Layouts.jsx') && !/admin/.test(f))[1];
+    expect(layouts.split('adminItems')[0]).not.toMatch(/\/app\/withdrawals/);
   });
 });

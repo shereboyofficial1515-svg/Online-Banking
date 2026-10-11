@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
-import { Button, Field, Input, PasswordInput } from '../../components/ui/Controls.jsx';
+import { Button, Field, Input, PasswordInput, Switch } from '../../components/ui/Controls.jsx';
 import { Alert, Badge, Card, EmptyState, ErrorState, PageHeader, SkeletonCard } from '../../components/ui/Feedback.jsx';
 import { ConfirmDialog, Modal } from '../../components/ui/Overlay.jsx';
 import PasswordStrength from '../../components/ui/PasswordStrength.jsx';
@@ -9,6 +9,8 @@ import Icon from '../../components/ui/Icon.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../lib/auth.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
+import { usePrefs } from '../../lib/PreferencesProvider.jsx';
+import { PinForm } from '../../components/PinSetup.jsx';
 import { api, fieldErrors } from '../../lib/api.js';
 import { dateTime, relativeTime, titleCase } from '../../lib/format.js';
 
@@ -122,6 +124,30 @@ function PasskeyCard({ passkeys, onChanged }) {
   );
 }
 
+// ───────── Session PIN and unlock methods ─────────
+function PinCard({ pin, hasPasskeys, onChanged }) {
+  const { t } = usePrefs();
+  const { updateUser } = useAuth();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const toggle = async (on) => {
+    setBusy(true);
+    try { await api.patch('/api/security/unlock-methods', { passkey: on }); updateUser({ unlockPasskeyEnabled: on }); toast.success(t('common.saved')); onChanged(); }
+    catch (ex) { toast.error(ex.message); } finally { setBusy(false); }
+  };
+  return (
+    <Card title={t('pin.settings')} data-animate action={<Button variant="secondary" size="sm" onClick={() => setOpen(true)}>{t('pin.change')}</Button>}>
+      <p className="muted" style={{ margin: 0 }}>{t('pin.isSet')}</p>
+      <div className="pref-row" style={{ marginTop: 12 }}>
+        <div><strong id="pk-unlock">{t('pin.passkeyUnlock')}</strong><div className="muted small">{t('pin.passkeyUnlock.desc')}</div></div>
+        <Switch checked={pin.passkeyUnlock} disabled={busy || !hasPasskeys} onChange={toggle} label={t('pin.passkeyUnlock')} describedBy="pk-unlock" />
+      </div>
+      <Modal open={open} onClose={() => setOpen(false)} title={t('pin.change')} size="sm"><PinForm onDone={() => { setOpen(false); onChanged(); }} /></Modal>
+    </Card>
+  );
+}
+
 // ───────── Password ─────────
 function PasswordCard({ changedAt }) {
   const { user } = useAuth();
@@ -179,6 +205,7 @@ export default function Security({ show = null, title = 'Security', subtitle = '
         ))}
       </div>
       )}
+      {has('pin') && !user.isStaff && <PinCard pin={d.pin} hasPasskeys={d.passkeys.length > 0} onChanged={reload} />}
       {(has('password') || has('mfa')) && (
         <div className={has('password') && has('mfa') ? 'grid grid-2' : 'stack'} style={{ alignItems: 'start' }}>
           {has('password') && <PasswordCard changedAt={d.password.changedAt} />}

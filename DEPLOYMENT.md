@@ -24,6 +24,12 @@ Why a rewrite instead of calling Render directly: session cookies are `HttpOnly;
 * **Email:** to send from the new domain, verify `eastwesthub.site` in Resend and set `RESEND_FROM_EMAIL` / `SUPPORT_EMAIL` accordingly.
 * After changing `APP_URL`, redeploy the API, then redeploy the website.
 
+## Session PIN, idle lock and transfer controls (migration `012`)
+* Apply `012` first (`npm run migrate:status`, then `npm run migrate` from `backend/`), then deploy API and website together.
+* Every customer must set a six-digit session PIN at their next sign-in; the API refuses banking requests (403 `PIN_SETUP_REQUIRED`) until one exists. Staff keep password + authenticator code.
+* Optional env vars: `IDLE_LOCK_SECONDS` (default 60), `IDLE_LOCK_GRACE_SECONDS`, `WITHDRAWAL_REQUESTS_ENABLED` (default off; customer withdrawal requests are retired, history and staff tools remain), `SUPPORT_EMAIL` (shown in the transfer maintenance notice; if unset the notice links to the support page and no address is invented).
+* Transfers start in maintenance (`transfers.enabled` off). A Super Admin turns them on under Admin -> Features. Savings is controlled from the same page.
+
 ## Phone numbers, languages and savings (migration `011`)
 * Apply `011` first (`npm run migrate`), then deploy API and website together: the registration form now sends an international number and the API requires it.
 * Existing customers are not changed. Optionally run `node src/db/backfillPhones.js` (dry run) and then `--apply` to normalise legacy numbers that are already valid international numbers; everyone else is asked to add one in the app.

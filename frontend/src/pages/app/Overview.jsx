@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Controls.jsx';
 import { Alert, Badge, Card, EmptyState, ErrorState, PageHeader, SkeletonCard, SkeletonRows, Pagination } from '../../components/ui/Feedback.jsx';
 import { BalanceChart, InOutChart } from '../../components/ui/Charts.jsx';
@@ -43,6 +43,12 @@ export default function Overview() {
   const { user } = useAuth();
   const accounts = useApi('/api/accounts');
   const { prefs, t } = usePrefs();
+  const nav = useNavigate();
+  const features = useApi('/api/features');
+  const savingsOn = features.data?.savings?.enabled === true;
+  const [savingsMsg, setSavingsMsg] = useState(false);
+  // Savings stays closed until management enables it; the server enforces that too. Nothing is simulated here.
+  const onSave = () => { if (savingsOn) nav('/app/transfers/save'); else setSavingsMsg(true); };
   const dash = prefs.dashboard;
   const primary = accounts.data?.accounts?.find((a) => a.id === dash.defaultAccountId) || accounts.data?.accounts?.[0]; // the customer's chosen default account first
   const summary = useApi(primary ? `/api/accounts/${primary.id}/summary` : null, null, { enabled: !!primary });
@@ -61,7 +67,13 @@ export default function Overview() {
   ];
   return (
     <div className="stack">
-      <PageHeader title={t('overview.hello', { name: user.firstName })} subtitle={t('overview.subtitle')} actions={<><Button to="/app/transfers" icon="swap" size="md">Transfer</Button><Button to="/app/withdrawals" variant="secondary" icon="upload">Request withdrawal</Button></>} />
+      <PageHeader title={t('overview.hello', { name: user.firstName })} subtitle={t('overview.subtitle')} />
+      <nav className="quick-actions" aria-label={t('transfer.title')}>
+        <Button to="/app/transfers/ewb" icon="swap" size="lg">{t('transfer.ewb')}</Button>
+        <Button to="/app/transfers/bank" icon="bank" size="lg">{t('transfer.bank')}</Button>
+        <Button variant={savingsOn ? 'primary' : 'secondary'} icon="wallet" size="lg" onClick={onSave} aria-describedby={savingsMsg ? 'save-msg' : undefined}>{t('transfer.save')}</Button>
+      </nav>
+      {savingsMsg && <Alert tone="info"><span id="save-msg">{t('save.unavailable')}</span></Alert>}
       <AccountStatusNotice account={primary} verification={verification.data} />
       {primary && <Balance account={primary} />}
       {(dash.showChart || dash.showMoneyInOut) && (

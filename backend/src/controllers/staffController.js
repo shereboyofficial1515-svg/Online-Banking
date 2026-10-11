@@ -110,5 +110,5 @@ export const decideClosure = h(async (req, res) => res.json({ closure: await set
 export const accountSecurityReview = h(async (req, res) => res.json(await withdrawals.setSecurityReview(req.ctx, req.params.id, req.body)));
 
 // feature switches (management)
-export const getSavingsFeature = h(async (req, res) => res.json(await features.getSavingsSetting()));
-export const setSavingsFeature = h(async (req, res) => res.json(await features.setSavings(req.ctx, req.body)));
+export const getFeature = h(async (req, res) => res.json(await features.getFeature(req.params.key)));
+export const setFeature = h(async (req, res) => res.json(await features.setFeature(req.ctx, req.params.key, req.body)));

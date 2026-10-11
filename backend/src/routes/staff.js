@@ -25,8 +25,8 @@ admin.post('/withdrawals/:id/notes', can('withdrawals.note'), id, validate(v.not
 admin.post('/withdrawals/:id/actions', sensitiveLimiter, id, validate(v.withdrawalActionSchema), c.withdrawalAction);
 
 admin.post('/accounts/:id/security-review', sensitiveLimiter, can('accounts.review'), id, validate(v.securityReviewSchema), c.accountSecurityReview);
-admin.get('/features/savings', can('features.manage'), c.getSavingsFeature);
-admin.put('/features/savings', sensitiveLimiter, can('features.manage'), validate(v.featureToggleSchema), c.setSavingsFeature);
+admin.get('/features/:key', can('features.manage'), validate(v.featureKeyParam, 'params'), c.getFeature);
+admin.put('/features/:key', sensitiveLimiter, can('features.manage'), validate(v.featureKeyParam, 'params'), validate(v.featureToggleSchema), c.setFeature);
 admin.get('/account-closures', can('accounts.review'), c.listClosures);
 admin.post('/account-closures/:id', sensitiveLimiter, can('accounts.review'), id, validate(v.closureDecisionSchema), c.decideClosure);
 

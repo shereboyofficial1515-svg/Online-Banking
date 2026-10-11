@@ -4,7 +4,7 @@ import config from '../config/index.js';
 import { getDb } from '../db/index.js';
 import * as L from '../repositories/ledger.js';
 import * as audit from './auditService.js';
-import { assertSavingsEnabled } from './featureService.js';
+import { assertSavingsEnabled, assertTransfersEnabled } from './featureService.js';
 import * as security from './securityEventService.js';
 import { notify } from './notificationService.js';
 import { badRequest, conflict, forbidden, notFound } from '../utils/errors.js';
@@ -133,6 +133,7 @@ export async function reverse(ctx, { transactionId, reason }) {
 
 /** Customer-initiated transfer between two EWB ledger accounts. The authenticated user is the only source of ownership. */
 export async function transfer(ctx, { fromAccountId, toAccountNumber, amountMinor, description, idempotencyKey }) {
+  await assertTransfersEnabled(); // maintenance switch: enforced here so no request can move money while transfers are unavailable
   const db = getDb();
   const userId = ctx.actor.id;
   if (amountMinor > config.ledger.maxTransferMinor) throw badRequest(`Transfers are limited to ${formatMinor(config.ledger.maxTransferMinor, config.ledger.defaultCurrency)} per transaction.`);

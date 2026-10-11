@@ -454,7 +454,7 @@ export function AboutSettings() {
 }
 
 // ───────── security pages (sections of the Security Center) ─────────
-export const PasswordSettings = () => <Security show={['password', 'mfa', 'passkeys']} title="Password & authentication" subtitle="Your password, authenticator app and passkeys." />;
+export const PasswordSettings = () => <Security show={['pin', 'password', 'mfa', 'passkeys']} title="Password & authentication" subtitle="Your password, authenticator app and passkeys." />;
 export const SessionSettings = () => <Security show={['sessions', 'devices']} title="Active sessions & devices" subtitle="See where you are signed in and end sessions you don’t recognise." />;
 export const SecurityCenterSettings = () => <Security show={['overview', 'alerts', 'activity']} title="Security Center" subtitle="An overview of how well your account is protected." />;
 

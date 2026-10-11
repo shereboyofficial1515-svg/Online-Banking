@@ -93,8 +93,19 @@ export const emailChangeRequestSchema = z.object({ newEmail: z.string().trim().t
 export const emailChangeConfirmSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.') });
 export const closureRequestSchema = z.object({ reason: z.string().trim().max(500).optional(), password });
 export const closureDecisionSchema = z.object({ decision: z.enum(['complete', 'decline']), note: z.string().trim().max(500).optional() });
+export const featureKeyParam = z.object({ key: z.enum(['savings', 'transfers']) });
+export const externalTransferSchema = z.object({
+  fromAccountId: uuid, bankName: trimmed(2, 80, 'Bank name'), accountName: trimmed(2, 80, 'Account holder name'),
+  accountNumber: z.string().trim().regex(/^\d{6,20}$/, 'Enter the recipient account number (digits only).'),
+  amount: z.string().trim().regex(/^\d{1,9}(\.\d{1,2})?$/, 'Enter a valid amount.'),
+});
 export const featureToggleSchema = z.object({ enabled: z.boolean(), reason: z.string().trim().min(5, 'Enter a reason of at least 5 characters.').max(300) });
-export const unlockSchema = z.object({ password: password, code: z.string().trim().max(32).optional() });
+export const unlockSchema = z.object({
+  pin: z.string().trim().regex(/^\d{6}$/, 'Enter your 6-digit PIN.').optional(),
+  password: password.optional(), code: z.string().trim().max(32).optional(), newPin: z.string().trim().regex(/^\d{6}$/, 'Your PIN must be exactly 6 digits.').optional(),
+}).refine((v) => v.pin || v.password, { message: 'Enter your PIN.', path: ['pin'] });
+export const setPinSchema = z.object({ pin: z.string().trim().regex(/^\d{6}$/, 'Your PIN must be exactly 6 digits.'), password, code: z.string().trim().max(32).optional() });
+export const unlockMethodsSchema = z.object({ passkey: z.boolean() });
 export const unlockPasskeySchema = z.object({ response: z.record(z.string(), z.any()) });
 export const securityReviewSchema = z.object({ enabled: z.boolean(), reason: z.string().trim().min(5, 'Enter a reason of at least 5 characters.').max(500) });
 export const feedbackSchema = z.object({ kind: z.enum(['suggestion', 'problem', 'compliment']), message: z.string().trim().min(10, 'Please write at least 10 characters.').max(2000) });

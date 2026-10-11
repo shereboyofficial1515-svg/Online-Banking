@@ -10,6 +10,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { SkeletonCard, ErrorState } from '../components/ui/Feedback.jsx';
 import ThemeSwitcher from '../components/ThemeSwitcher.jsx';
 import LanguageSelect from '../components/LanguageSelect.jsx';
+import PinSetup from '../components/PinSetup.jsx';
 import { usePrefs } from '../lib/PreferencesProvider.jsx';
 import { useSite } from '../lib/site.jsx';
 
@@ -21,7 +22,6 @@ const customerGroups = (t) => [
     { to: '/app/accounts', label: t('nav.accounts'), icon: 'wallet' },
     { to: '/app/transactions', label: t('nav.transactions'), icon: 'list' },
     { to: '/app/transfers', label: t('nav.transfers'), icon: 'swap' },
-    { to: '/app/withdrawals', label: t('nav.withdrawals'), icon: 'upload' },
   ] },
   { label: t('nav.group.profile'), items: [
     { to: '/app/verification', label: t('nav.identity'), icon: 'id' },
@@ -37,7 +37,7 @@ const customerBottom = (t) => [
   { to: '/app', label: t('nav.overview'), icon: 'home', end: true },
   { to: '/app/transactions', label: t('nav.transactions'), short: t('nav.activity'), icon: 'list' },
   { to: '/app/transfers', label: t('nav.transfers'), short: t('nav.transfer'), icon: 'swap' },
-  { to: '/app/withdrawals', label: t('nav.withdrawals'), short: t('nav.withdraw'), icon: 'upload' },
+  { to: '/app/accounts', label: t('nav.accounts'), icon: 'wallet' },
 ];
 
 const adminItems = [
@@ -66,6 +66,7 @@ export function Gate({ children, staff = false }) {
   if (!user) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   if (staff && !user.isStaff) return <Navigate to="/app" replace />;
   if (!staff && user.isStaff) return <Navigate to="/admin" replace />;
+  if (!staff && !user.pinSet) return <PinSetup />; // customers must set a session PIN before using the app (the server refuses banking requests until they do)
   if (staff && mfaEnrollmentRequired && loc.pathname !== '/admin/security-center') return <Navigate to="/admin/security-center" replace />;
   return children;
 }

@@ -308,3 +308,18 @@ a.settings-item:hover { background: var(--hover); color: var(--text); }
 [dir="rtl"] .drawer .nav-item.active { box-shadow: inset -3px 0 0 var(--accent); }
 [dir="rtl"] .settings-chev, [dir="rtl"] .tc-go, [dir="rtl"] .flip-rtl { transform: scaleX(-1); }
 [dir="rtl"] .mono, [dir="rtl"] input[type="tel"], [dir="rtl"] input[type="email"], [dir="rtl"] .dial { direction: ltr; unicode-bidi: plaintext; }
+
+/* ── Overview quick actions: To EWB, To Bank, Save ───────────────────────────────────────────────────────── */
+.quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 640px; }
+.quick-actions .btn { width: 100%; min-height: 52px; justify-content: center; padding-inline: 10px; font-size: .95rem; white-space: nowrap; }
+@media (max-width: 400px) { .quick-actions { gap: 8px; } .quick-actions .btn { padding-inline: 6px; font-size: .88rem; gap: 6px; } .quick-actions .btn svg { width: 18px; height: 18px; } }
+
+/* ── Transfer maintenance notice ─────────────────────────────────────────────────────────────────────────── */
+.maint { display: flex; gap: 14px; padding: 18px; border-radius: var(--radius); border: 1px solid var(--accent-border); background: var(--accent-soft); color: var(--text); }
+.maint-icon { flex: none; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--accent-text, var(--accent)); }
+.maint-body { min-width: 0; display: grid; gap: 8px; justify-items: start; } .maint-body h2 { font-size: 1rem; letter-spacing: .06em; margin: 0; color: var(--text-strong); } .maint-body p { margin: 0; }
+.maint-contact a { font-weight: 700; overflow-wrap: anywhere; }
+
+/* ── PIN field ───────────────────────────────────────────────────────────────────────────────────────────── */
+.pin-input { letter-spacing: .5em; text-align: center; font-size: 1.4rem; font-variant-numeric: tabular-nums; min-height: 52px; }
+.pin-input::placeholder { letter-spacing: normal; }

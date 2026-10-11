@@ -145,3 +145,10 @@ New attack surface added by Task 02 and how each part is controlled. This is a d
 * If the browser never gets to send the `away` request (the tab is killed instantly), the lock is applied when the page next loads, using the stored timestamp, or on the first request after that.
 * Passkey unlock was tested only with a made-up assertion (rejected); a real authenticator was not available.
 * The public login page does not show customer photos (there is no remembered-account feature), so one customer's photo can never be shown to another.
+
+## Task 05: session PIN, server idle lock, transfer controls
+* PIN: Argon2id over HMAC(server secret, userId:pin); weak patterns rejected; progressive delays (3rd wrong 15 s, 4th 60 s, 5th ends the session); it only unlocks an existing session, never signs in. Setting or changing it needs the password (and authenticator code); recovery needs password plus a new PIN.
+* Idle lock is enforced by the server (`sessions.locked_at`); locked sessions get 403 `SESSION_LOCKED` except on unlock/logout endpoints.
+* Transfers and savings are enforced by backend switches (503 `TRANSFERS_UNAVAILABLE`, 403 `SAVINGS_UNAVAILABLE`) before any debit or record; admin changes are audited.
+* Customer withdrawal creation returns 410 `WITHDRAWALS_RETIRED`; historical records and staff review are preserved.
+* Not tested: real passkey/biometric hardware; translations are unreviewed betas.

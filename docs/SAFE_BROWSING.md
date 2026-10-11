@@ -53,3 +53,9 @@ Evidence-based inference, not a confirmed Google statement: Safe Browsing's "dec
 | Google's current classification of any domain | **Not verified** (only an unofficial endpoint was reachable) |
 | Safe Browsing review | **Not requested** — needs the domain owner's Google/Search Console access |
 | EWB production domain | **Unknown to me** — owner to confirm |
+
+## Update: domain status finding
+* `eastwesthub.site` currently does not resolve (NXDOMAIN). RDAP shows the registry status `server hold` (registered 2026-10-11 via Hostinger). The cause of the hold is **unconfirmed**; contact the registrar. A browser warning cannot be assessed while the site is unreachable.
+* Source, headers, cookies, CORS, bundle and source maps were reviewed: no secrets, no source maps, no third-party scripts, no cloaking or redirects. The bundle secret scan runs on every build.
+* Google's classification was **not** independently verified. Once the domain resolves, check Search Console (Security issues) and request a review there; do not claim the warning is cleared until Google shows it so.
+* `vercel.json` rewrites `/api` to the API domain, which is unreachable until DNS works.

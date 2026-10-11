@@ -83,8 +83,8 @@ export const DEFAULT_SITE_CONFIG = {
         },
         {
           "icon": "upload",
-          "title": "Withdrawal requests",
-          "text": "Submit a withdrawal request and follow its status. Requests can go through a security check, and you are notified when the status changes."
+          "title": "Transfers to other banks",
+          "text": "Send money to accounts at other banks from your dashboard. Availability is shown clearly, and the status you see always reflects what has actually happened."
         },
         {
           "icon": "id",
@@ -162,8 +162,8 @@ export const DEFAULT_SITE_CONFIG = {
           "a": "Your balance is the total of the completed transactions on your account. Every transaction is permanent and traceable, and a balance is never edited directly — corrections are made with new, clearly referenced transactions."
         },
         {
-          "q": "How do withdrawals work?",
-          "a": "Submit a withdrawal request from your dashboard and follow its status. Some requests go through a security check before they are processed, and you are notified when the status changes. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was."
+          "q": "How do transfers work?",
+          "a": "Choose To EWB for another EWB Bank account or To Bank for an account at another bank. Each option shows whether it is available, and the status you see always reflects what has actually happened — we never show a transfer as sent unless it was."
         },
         {
           "q": "How does passkey sign-in work?",
@@ -187,7 +187,7 @@ export const DEFAULT_SITE_CONFIG = {
   "about": {
     "title": "About EWB Bank",
     "intro": "EWB Bank is a digital banking platform focused on security, transparency and a calm, clear experience.",
-    "body": "## What we do\nWe give customers one secure place to manage accounts, move funds between EWB accounts, request withdrawals and get help from a real support team.\n\n## How we work\n- Security first: passkeys, multi-factor authentication and session control are built in.\n- Transparency: every transaction is recorded permanently and can be traced.\n- Clarity: plain-language statuses and straightforward terms.\n\n## Our approach\nWe keep the experience simple: a clear view of your accounts, clear statuses for every request, and a support team that is easy to reach."
+    "body": "## What we do\nWe give customers one secure place to manage accounts, move funds between EWB accounts, send money to other banks and get help from a real support team.\n\n## How we work\n- Security first: passkeys, multi-factor authentication and session control are built in.\n- Transparency: every transaction is recorded permanently and can be traced.\n- Clarity: plain-language statuses and straightforward terms.\n\n## Our approach\nWe keep the experience simple: a clear view of your accounts, clear statuses for every request, and a support team that is easy to reach."
   }
 };
 export const LEGAL_ROUTES = {

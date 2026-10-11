@@ -8,15 +8,20 @@ import { createApp } from '../src/app.js';
 import * as users from '../src/repositories/users.js';
 import * as accountService from '../src/services/accountService.js';
 import * as mfa from '../src/services/mfaService.js';
+import * as pinService from '../src/services/pinService.js';
 import { hashPassword } from '../src/utils/passwords.js';
 
 export const PASSWORD = 'Str0ng!Passw0rd#42';
+export const PIN = '482915';
 let seq = 0;
 
 export async function boot() {
   const db = await initDb();
   await migrate(db);
   initProviders();
+  // Transfers are in maintenance by default (no row); the shared fixtures switch them on so the money tests can run. Tests that check the
+  // default remove or flip this row themselves.
+  await db.query("INSERT INTO app_settings (key, value) VALUES ('transfers.enabled', '{\"enabled\": true}'::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value");
   return { app: createApp(), db };
 }
 export const shutdown = () => closeDb();
@@ -55,6 +60,7 @@ export async function makeCustomer({ verified = false, accountActive = true, ove
   const db = getDb();
   const email = over.email || uniqueEmail('cust');
   const u = await users.create(db, { email, firstName: 'Casey', lastName: 'Doe', passwordHash: await hashPassword(PASSWORD), emailVerifiedAt: new Date(), role: 'customer', status: 'active', ...over });
+  if (over.noPin !== true) await db.query('UPDATE users SET session_pin_hash=$2 WHERE id=$1', [u.id, await pinService.hashPin(u.id, PIN)]);
   const acct = await accountService.openDefaultAccount(db, u.id);
   if (accountActive) await db.query("UPDATE accounts SET status='active' WHERE id=$1", [acct.id]);
   if (verified) await users.update(db, u.id, { verification_status: 'verified' });

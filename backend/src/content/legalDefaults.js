@@ -24,8 +24,8 @@ EWB Bank provides digital account services. Balances are **maintained by EWB Ban
 ## 3. Transfers
 Transfers move funds between EWB accounts and are available after identity verification. Each transfer has a unique reference and cannot be edited; if a correction is needed, our team adds a new, traceable entry.
 
-## 4. Withdrawal requests
-A withdrawal request is checked before it is processed, and some requests or accounts may go through an additional security review. Submitting a request does not itself move funds. We show the true status of every request, explain any step you need to take, and notify you when the status changes.
+## 4. Payments to other banks
+Payments to accounts at other banks are offered when the service is available; we show clearly when it is not. A request is checked before it is processed, and some accounts may go through an additional security review. We show the true status of every request, explain any step you need to take, and notify you when the status changes.
 
 ## 5. Acceptable use
 Do not attempt to access other profiles, interfere with the service, or use it for unlawful activity. We may restrict a profile while we investigate unusual activity and will explain next steps through Customer Support.
