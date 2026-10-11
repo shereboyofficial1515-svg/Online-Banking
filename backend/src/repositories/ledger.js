@@ -27,18 +27,21 @@ export async function balances(q, accountId) {
   return { ledger, held, available: ledger - held };
 }
 
-export async function createAccount(q, { userId = null, kind = 'customer', type = 'checking', name, currency, status = 'pending_review', accountNumber }) {
-  for (let i = 0; i < 5; i++) {
-    try {
-      const { rows } = await q.query(
-        'INSERT INTO accounts (user_id, kind, account_number, type, name, currency, status) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-        [userId, kind, accountNumber ?? newAccountNumber(), type, name, currency, status]);
-      return rows[0];
-    } catch (e) {
-      if (!/account_number|unique/i.test(e.message) || accountNumber) throw e;
-    }
+/**
+ * Creates an account with a generated, unique number. Uses ON CONFLICT DO NOTHING so a collision never raises an error
+ * (an error would abort the caller's transaction); we simply draw another number. `generate` is injectable for tests.
+ */
+export async function createAccount(q, { userId = null, kind = 'customer', type = 'checking', name, currency, status = 'pending_review', accountNumber, generate = newAccountNumber }) {
+  for (let i = 0; i < 12; i++) {
+    const number = accountNumber ?? generate();
+    const { rows } = await q.query(
+      `INSERT INTO accounts (user_id, kind, account_number, type, name, currency, status) VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT DO NOTHING RETURNING *`,
+      [userId, kind, number, type, name, currency, status]);
+    if (rows[0]) return rows[0];
+    if (accountNumber) throw new Error('Account number already in use');
   }
-  throw new Error('Could not allocate account number');
+  throw new Error('Could not allocate a unique account number');
 }
 
 export async function getOrCreateFundingAccount(q, currency) {

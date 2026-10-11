@@ -3,13 +3,15 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom';
 
 const post = vi.fn();
-vi.mock('../lib/api.js', async (orig) => ({ ...(await orig()), api: { get: vi.fn(), post: (...a) => post(...a), put: vi.fn(), patch: vi.fn(), delete: vi.fn(), upload: vi.fn() } }));
+vi.mock('../lib/api.js', async (orig) => ({ ...(await orig()), api: { get: vi.fn(() => Promise.resolve({ authenticated: false, canRefresh: false })), post: (...a) => post(...a), put: vi.fn(), patch: vi.fn(), delete: vi.fn(), upload: vi.fn() } }));
 
 const { VerifyEmail } = await import('../pages/auth/Auth.jsx');
 const { ToastProvider } = await import('../components/ui/Toast.jsx');
+const { AuthProvider } = await import('../lib/auth.jsx');
+const { PreferencesProvider } = await import('../lib/PreferencesProvider.jsx');
 
 const mount = (state) => render(
-  <MemoryRouter initialEntries={[{ pathname: '/verify-email', state }]}><ToastProvider><VerifyEmail /></ToastProvider></MemoryRouter>,
+  <MemoryRouter initialEntries={[{ pathname: '/verify-email', state }]}><ToastProvider><AuthProvider><PreferencesProvider><VerifyEmail /></PreferencesProvider></AuthProvider></ToastProvider></MemoryRouter>,
 );
 const codeInput = () => screen.getByLabelText(/Verification code/);
 

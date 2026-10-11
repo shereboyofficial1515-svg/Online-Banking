@@ -76,6 +76,14 @@ describe('customer-facing content', () => {
     }
   });
 
+  it('uses "balance" and "account" instead of "ledger" in customer-facing screens', () => {
+    for (const [f, text] of files) {
+      if (/pages[\\/]admin|layouts[\\/]Layouts|App\.jsx|TransactionRow/.test(f)) continue; // staff console and routing keep internal names
+      const visible = text.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/hasLedgerEntries/g, '');
+      expect(visible, `${f} shows internal accounting terminology to customers`).not.toMatch(/ledger/i);
+    }
+  });
+
   it('never claims a licence, regulator, deposit insurance or partnership that does not exist', () => {
     const unsupported = /\bFDIC\b|licensed by|regulated by|authori[sz]ed by|member of|deposits? (are|is) (fully )?insured|(?<!not )insured by|in partnership with [A-Z]|East West/;
     for (const [f, text] of files) {
@@ -91,8 +99,8 @@ describe('customer-facing content', () => {
     expect(DISCLOSURE).toMatch(/when they become available/); // future partner is described as future, not as done
     const layouts = files.find(([f]) => f.endsWith('Layouts.jsx'))[1];
     expect(layouts).toContain('{DISCLOSURE}');
-    const terms = files.find(([f]) => f.endsWith('Legal.jsx'))[1];
-    expect(terms).toMatch(/does not currently hold a banking licence/);
+    const terms = files.find(([f]) => f.endsWith('legalDefaults.js'))[1]; // built-in Terms text (also served by the API)
+    expect(terms).toMatch(/not deposits with a bank|does not currently hold a banking licence/);
   });
 
   it('withdrawal copy still states that nothing was sent', () => {

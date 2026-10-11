@@ -58,7 +58,7 @@ describe('crypto helpers', () => {
   });
   test('references and account numbers have the expected shape', () => {
     assert.match(newReference(), /^EWB-[A-Z2-9]{12}$/);
-    assert.match(newAccountNumber(), /^EWB\d{10}$/);
+    assert.match(newAccountNumber(), /^605\d{9}$/);
     assert.equal(safeEqual('abc', 'abc'), true);
     assert.equal(safeEqual('abc', 'abd'), false);
     assert.equal(safeEqual('abc', 'abcd'), false);
@@ -90,7 +90,8 @@ describe('email templates', () => {
       assert.match(html, /Security tip/);
       assert.match(html, /keep your password and verification codes private/);
       assert.match(html, /mailto:/);
-      assert.match(html, /ledger balances maintained by EWB Bank/);
+      assert.match(html, /balances are maintained by EWB Bank/);
+      assert.doesNotMatch(html, /ledger/i, 'customer emails never use the word ledger');
       assert.match(html, /\/terms"/); // full terms one click away
       assert.ok(text.length > 40 && !/<[a-z]/.test(text), `${name} text part has markup`);
       assert.doesNotMatch(html, /East West/i);

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useSite } from '../../lib/site.jsx';
 
 /** Original EWB Bank mark: a rising "W" stroke on a navy tile. Not derived from any other institution's identity. */
 export function LogoMark({ size = 34 }) {
@@ -11,11 +12,26 @@ export function LogoMark({ size = 34 }) {
   );
 }
 
+/**
+ * Brand logo. Uses the administrator-uploaded images when set (one for light backgrounds, one for dark ones, switching with the
+ * theme) and otherwise the built-in mark plus the configured name. `light` means "placed on a navy background".
+ */
 export default function Logo({ to = '/', light = false, compact = false }) {
+  const { config, assetUrl } = useSite();
+  const { siteName, logoText, logoLightAssetId, logoDarkAssetId } = config.brand;
+  const onLight = assetUrl(logoLightAssetId); const onDark = assetUrl(logoDarkAssetId);
+  const [first, ...rest] = String(logoText || siteName).split(' ');
   return (
-    <Link to={to} className={`logo ${light ? 'logo-light' : ''}`} aria-label="EWB Bank home">
-      <LogoMark />
-      {!compact && <span className="logo-word">EWB<span> Bank</span></span>}
+    <Link to={to} className={`logo ${light ? 'logo-light' : ''}`} aria-label={`${siteName} home`}>
+      {onLight || onDark ? (
+        light
+          ? <img className="logo-img" src={onDark || onLight} alt="" />
+          : (<>
+            <img className="logo-img logo-img-onlight" src={onLight || onDark} alt="" />
+            <img className="logo-img logo-img-ondark" src={onDark || onLight} alt="" />
+          </>)
+      ) : <LogoMark />}
+      {!compact && !(onLight || onDark) && <span className="logo-word">{first}{rest.length > 0 && <span> {rest.join(' ')}</span>}</span>}
     </Link>
   );
 }

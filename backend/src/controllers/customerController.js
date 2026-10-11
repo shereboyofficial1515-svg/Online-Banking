@@ -1,7 +1,10 @@
 // HTTP adapters for the customer-facing APIs. Each handler takes identity ONLY from req.auth (the verified
 // session) - ids in URLs/bodies are treated as lookup keys that must resolve to something the user owns.
+import * as settings from '../services/settingsService.js';
+import * as legal from '../services/legalService.js';
 import * as users from '../repositories/users.js';
 import * as userService from '../services/userService.js';
+import * as preferences from '../services/preferencesService.js';
 import * as accounts from '../services/accountService.js';
 import * as transactions from '../services/transactionService.js';
 import * as ledger from '../services/ledgerService.js';
@@ -27,6 +30,10 @@ export const getPhoto = h(async (req, res) => {
   const { buffer, mime } = await userService.getProfilePhoto(req.auth.user);
   res.set({ 'Content-Type': mime, 'Cache-Control': 'private, max-age=300', 'Content-Disposition': 'inline' }).send(buffer);
 });
+
+// preferences (display, accessibility, language, regional formatting)
+export const getDisplayPreferences = h(async (req, res) => res.json({ preferences: await preferences.get(uid(req)) }));
+export const saveDisplayPreferences = h(async (req, res) => res.json({ preferences: await preferences.update(uid(req), req.body) }));
 
 // accounts
 export const listAccounts = h(async (req, res) => res.json({ accounts: await accounts.listForUser(uid(req)) }));
@@ -91,3 +98,17 @@ export const revokeSession = h(async (req, res) => {
 });
 export const revokeOthers = h(async (req, res) => res.json(await center.revokeOtherSessions(req.ctx, req.auth.user)));
 export const removeDevice = h(async (req, res) => { await center.removeDevice(req.ctx, req.auth.user, req.params.id); res.json({ ok: true }); });
+
+export const listLegalAcceptances = h(async (req, res) => res.json(await legal.listAcceptances(req.auth.user.id)));
+
+// settings: email change, account name, closure, feedback
+export const requestEmailChange = h(async (req, res) => res.json(await settings.requestEmailChange(req.ctx, req.auth.user, req.body)));
+export const confirmEmailChange = h(async (req, res) => res.json({ user: await settings.confirmEmailChange(req.ctx, req.auth.user, req.body) }));
+export const renameAccount = h(async (req, res) => res.json({ account: await settings.renameAccount(req.ctx, req.auth.user, req.params.id, req.body.name) }));
+export const getClosure = h(async (req, res) => res.json({ closure: await settings.getClosure(uid(req), req.params.id) }));
+export const requestClosure = h(async (req, res) => res.status(201).json({ closure: await settings.requestClosure(req.ctx, req.auth.user, req.params.id, req.body) }));
+export const cancelClosure = h(async (req, res) => res.json({ closure: await settings.cancelClosure(req.ctx, req.auth.user, req.params.id) }));
+export const sendFeedback = h(async (req, res) => {
+  const label = { suggestion: 'Suggestion', problem: 'Problem report', compliment: 'Compliment' }[req.body.kind];
+  res.status(201).json({ ticket: await support.create(req.ctx, { category: 'other', subject: `Feedback: ${label}`, message: req.body.message }, []) });
+});

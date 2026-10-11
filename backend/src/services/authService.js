@@ -6,6 +6,7 @@ import * as accountService from './accountService.js';
 import * as sessions from './sessionService.js';
 import * as mfa from './mfaService.js';
 import * as audit from './auditService.js';
+import * as legal from './legalService.js';
 import * as security from './securityEventService.js';
 import { sendEmail } from './emailService.js';
 import { notify } from './notificationService.js';
@@ -90,6 +91,7 @@ export async function register(ctx, input) {
   const { user, token } = await db.tx(async (t) => {
     const user = await users.create(t, { ...input, passwordHash, role: 'customer', status: 'active' });
     await accountService.openDefaultAccount(t, user.id);
+    await legal.recordAcceptance(t, ctx, user.id); // which version of the Terms and Privacy Policy was agreed to
     const code = await issueEmailCode(t, user.id);
     await audit.record(t, ctx, { actorId: user.id, actorRole: 'customer', action: 'user.register', targetType: 'user', targetId: user.id });
     return { user, token: code };

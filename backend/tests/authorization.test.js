@@ -1,7 +1,7 @@
 // The "never allowed" matrix: what a normal user (or the wrong staff role) must NEVER be able to do.
 import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { boot, shutdown, client, login, makeCustomer, makeStaff, loginStaff, freshCode, fund, registrationBody, latestEmail, tokenFromEmail } from './helpers.js';
+import { boot, shutdown, client, login, makeCustomer, makeStaff, loginStaff, freshCode, fund, registrationBody, PASSWORD, latestEmail, tokenFromEmail } from './helpers.js';
 import * as L from '../src/repositories/ledger.js';
 import config from '../src/config/index.js';
 
@@ -46,13 +46,17 @@ describe('a normal user can never...', () => {
 
   test('modify their balance or role through any user-facing endpoint', async () => {
     const before = await db.query('SELECT role, status, verification_status, email_verified_at FROM users WHERE id=$1', [alice.user.id]);
-    const patch = await ac.patch('/api/users/me', { phone: '+1 555 010 0000', role: 'super_admin', status: 'active', verificationStatus: 'verified', balance: 999999, mfaEnabled: false });
+    const patch = await ac.patch('/api/users/me', { phone: '+1 555 010 0000', currentPassword: PASSWORD, role: 'super_admin', status: 'active', verificationStatus: 'verified', balance: 999999, mfaEnabled: false });
     assert.equal(patch.status, 200);
     const after = await db.query('SELECT role, status, verification_status, email_verified_at FROM users WHERE id=$1', [alice.user.id]);
     assert.deepEqual(after.rows[0], before.rows[0]);
     assert.equal(patch.body.user.role, 'customer');
     // no endpoint exists to write an account or ledger row directly
-    assert.equal((await ac.patch(`/api/accounts/${alice.accountId}`, { balance: 1e9 })).status, 404);
+    // the only account PATCH is a rename: anything else is rejected and nothing changes
+    assert.equal((await ac.patch(`/api/accounts/${alice.accountId}`, { balance: 1e9 })).status, 422);
+    assert.equal((await ac.patch(`/api/accounts/${alice.accountId}`, { name: 'Renamed', balance: 1e9, status: 'closed' })).status, 200);
+    assert.equal((await db.query('SELECT status FROM accounts WHERE id=$1', [alice.accountId])).rows[0].status, 'active');
+    assert.equal((await L.balances(db, alice.accountId)).ledger, 50000);
     assert.equal((await ac.put(`/api/accounts/${alice.accountId}`, { balance: 1e9 })).status, 404);
     assert.equal((await ac.post('/api/transactions', { amount: '100', type: 'ledger_credit' })).status, 404);
     const acct = await ac.post('/api/accounts', { type: 'savings', balance: 1e9, status: 'active', currency: 'EUR' });

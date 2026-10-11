@@ -14,6 +14,7 @@ import { asyncHandler } from './utils/asyncHandler.js';
 import authRoutes from './routes/auth.js';
 import * as customer from './routes/customer.js';
 import * as staff from './routes/staff.js';
+import * as siteRoutes from './routes/site.js';
 import * as verification from './services/verificationService.js';
 import { getDb } from './db/index.js';
 
@@ -79,6 +80,9 @@ export function createApp() {
   app.use('/api/support', customer.support);
   app.use('/api/security', customer.security);
   app.use('/api/ledger', staff.ledger);
+  app.use('/api/public', siteRoutes.pub);
+  app.use('/api/admin/site', siteRoutes.adminSite);
+  app.use('/api/admin/legal', siteRoutes.adminLegal);
   app.use('/api/admin', staff.admin);
   app.use('/api/audit', staff.audit);
   app.use('/api', notFoundHandler);

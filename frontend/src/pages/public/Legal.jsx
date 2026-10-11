@@ -1,103 +1,82 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../../lib/hooks.js';
 import { Button } from '../../components/ui/Controls.jsx';
+import { Alert } from '../../components/ui/Feedback.jsx';
+import Markdown from '../../components/Markdown.jsx';
+import { api } from '../../lib/api.js';
 import { useAuth } from '../../lib/auth.jsx';
+import { useSite } from '../../lib/site.jsx';
+import { LEGAL_FALLBACK } from '../../lib/legalDefaults.js';
 
-const UPDATED = 'Last updated: 1 October 2026';
+const longDate = (ymd) => (ymd ? new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${ymd}T00:00:00Z`)) : '');
 
-function Doc({ title, children }) {
-  useDocumentTitle(title);
-  return <article className="prose"><h1>{title}</h1><p className="updated">{UPDATED}</p>{children}</article>;
-}
-
-export function Privacy() {
+/** Presentational document shell, shared by the live pages and the admin preview. */
+export function LegalDoc({ title, body, effectiveDate, version, preview = false }) {
+  useDocumentTitle(preview ? '' : title);
   return (
-    <Doc title="Privacy Policy">
-      <p>This policy explains what personal information EWB Bank collects, why we collect it and the choices you have. We collect only what we need to run your profile securely.</p>
-      <h2>Information we collect</h2>
-      <ul>
-        <li><strong>Profile details:</strong> name, email, phone number, date of birth, address, state and country.</li>
-        <li><strong>Security data:</strong> a salted Argon2id hash of your password (never the password itself), sign-in history, device labels, IP addresses and passkey public keys.</li>
-        <li><strong>Identity verification:</strong> status and, when you use document review, the ID and selfie files you upload to private storage.</li>
-        <li><strong>Account activity:</strong> ledger entries, transfer and withdrawal-request records and support conversations.</li>
-      </ul>
-      <h2>What we never collect</h2>
-      <p>We never receive or store raw fingerprints or face scans. Passkeys work on your device; we receive only a cryptographic public key. We do not store full external bank account numbers for withdrawal requests, only the bank name, account holder name and last four digits.</p>
-      <h2>How we use information</h2>
-      <ul><li>To provide and secure your profile, including detecting unusual activity.</li><li>To verify identity and meet legal and compliance obligations as they apply.</li><li>To send transactional emails such as verification, security alerts and request updates.</li><li>To provide customer support.</li></ul>
-      <h2>Sharing</h2>
-      <p>We use service providers to operate the platform (for example database hosting, file storage and transactional email). They process data on our instructions. We do not sell personal information. Where an identity-verification provider is connected, we will describe it here before it is enabled.</p>
-      <h2>Retention and security</h2>
-      <p>Audit and ledger records are retained because they must be tamper-evident. Verification files are retained only as long as required for review and compliance. Data is encrypted in transit, access is limited by role, and staff access to sensitive documents is logged.</p>
-      <h2>Your choices</h2>
-      <p>You can update contact details and notification preferences in your dashboard. Security notices cannot be turned off. To request access, correction or deletion, open a request with customer support; some records may need to be retained for legal reasons.</p>
-      <p>Questions? Contact customer support from your dashboard.</p>
-    </Doc>
+    <article className="prose">
+      <h1>{title}</h1>
+      <p className="updated">{effectiveDate && <>Effective {longDate(effectiveDate)}</>}{version ? <> · Version {version}</> : null}</p>
+      <Markdown source={body} />
+    </article>
   );
 }
 
-export function Terms() {
-  return (
-    <Doc title="Terms of Service">
-      <p>By creating a profile you agree to these terms. Please read them with our <Link to="/privacy">Privacy Policy</Link>.</p>
-      <h2>1. Our service and important information</h2>
-      <p>EWB Bank provides digital account and ledger services. Balances are <strong>ledger balances maintained by EWB Bank</strong>; they are not deposits with a bank and are not insured by any government scheme. EWB Bank does not currently hold a banking licence, and nothing on this platform is an offer of regulated banking, payment, card or investment services. Regulated services, when introduced, will be provided through appropriately licensed partners and will carry additional terms and eligibility checks.</p>
-      <h2>2. Your profile</h2>
-      <ul><li>You must be at least 18 and provide accurate information.</li><li>Keep your credentials secret. We will never ask for your password or one-time codes.</li><li>You are responsible for activity on your profile until you report unauthorised access.</li></ul>
-      <h2>3. Transfers</h2>
-      <p>Transfers move ledger value between EWB accounts and are available after identity verification. Each transfer has a unique reference and cannot be edited; if a correction is needed, our team appends a new, traceable ledger entry.</p>
-      <h2>4. Withdrawal requests</h2>
-      <p>A withdrawal request is a request for review by Customer Support. Submitting a request does not itself move funds. We show the true status of every request and may ask for additional verification.</p>
-      <h2>5. Acceptable use</h2>
-      <p>Do not attempt to access other profiles, interfere with the service, or use it for unlawful activity. We may restrict a profile while we investigate unusual activity and will explain next steps through customer support.</p>
-      <h2>6. Availability and changes</h2>
-      <p>We work to keep the service available but do not guarantee uninterrupted access. We may update these terms; material changes will be communicated by email or in the app.</p>
-      <h2>7. Future regulated services</h2>
-      <p>If EWB Bank introduces regulated services, additional terms, disclosures and eligibility checks will apply and will be presented to you before you can use them.</p>
-    </Doc>
-  );
+/** A legal page loaded from the API. If the API is unreachable the built-in text is shown rather than an error. */
+function LegalPage({ slug, extra }) {
+  const fb = LEGAL_FALLBACK.docs[slug];
+  const [doc, setDoc] = useState({ title: fb.title, body: fb.body, effectiveDate: LEGAL_FALLBACK.effectiveDate, version: null });
+  useEffect(() => {
+    let off = false;
+    api.get(`/api/public/legal/${slug}`).then((d) => { if (!off && d?.body) setDoc(d); }).catch(() => {});
+    return () => { off = true; };
+  }, [slug]);
+  return <><LegalDoc {...doc} />{extra}</>;
 }
 
+export const Privacy = () => <LegalPage slug="privacy" />;
+export const Terms = () => <LegalPage slug="terms" />;
+export const Cookies = () => <LegalPage slug="cookies" />;
+export const Accessibility = () => <LegalPage slug="accessibility" />;
 export function SecurityInfo() {
   const { user } = useAuth();
+  return <LegalPage slug="security" extra={<div className="prose" style={{ paddingTop: 0 }}><Button to={user ? '/app/security' : '/login'} variant="secondary">Go to Security settings</Button></div>} />;
+}
+
+export function About() {
+  const { config } = useSite();
+  const a = config.about;
+  useDocumentTitle(a.title);
   return (
-    <Doc title="Security information">
-      <p>Security is built into every layer of EWB Bank. This page summarises how your profile is protected and what you can do to help.</p>
-      <h2>How we protect your profile</h2>
-      <ul>
-        <li><strong>Passwords:</strong> hashed with Argon2id; we cannot see them. Password reset links are single-use and expire in 30 minutes.</li>
-        <li><strong>Passkeys:</strong> sign in with fingerprint, face or device PIN using WebAuthn. We store only public keys, never biometric data.</li>
-        <li><strong>Multi-factor authentication:</strong> authenticator-app codes with single-use recovery codes. Administrators are required to use it.</li>
-        <li><strong>Sessions:</strong> short-lived access tokens in HttpOnly cookies, rotating refresh tokens, and instant revocation from the Security page.</li>
-        <li><strong>Monitoring:</strong> lock-outs after repeated failures, new-device alerts, and an append-only audit trail of privileged actions.</li>
-        <li><strong>Data isolation:</strong> every request is checked so you can only access your own records.</li>
-      </ul>
-      <h2>What you can do</h2>
-      <ul><li>Register a passkey and enable MFA from <em>Security</em>.</li><li>Use a unique, long password.</li><li>Review active sessions and trusted devices regularly.</li><li>Never share one-time codes. EWB Bank staff will never ask for them.</li></ul>
-      <h2>Reporting a concern</h2>
-      <p>If you suspect unauthorised access, change your password, end other sessions and contact customer support right away.</p>
-      <p><Button to={user ? '/app/security' : '/login'} variant="secondary">Go to Security settings</Button></p>
-    </Doc>
+    <article className="prose">
+      <h1>{a.title}</h1>
+      {a.intro && <p className="lead">{a.intro}</p>}
+      <Markdown source={a.body} />
+      <p style={{ marginTop: 24 }}><Button to="/contact" variant="secondary">Contact us</Button></p>
+    </article>
   );
 }
 
-export function Accessibility() {
+export function Contact() {
+  const { config } = useSite();
+  const { user } = useAuth();
+  const c = config.contact;
+  useDocumentTitle('Contact us');
   return (
-    <Doc title="Accessibility">
-      <p>EWB Bank aims to meet the Web Content Accessibility Guidelines (WCAG) 2.2 level AA. Everyone should be able to manage their accounts regardless of ability or device.</p>
-      <h2>What we do</h2>
+    <article className="prose">
+      <h1>Contact us</h1>
+      <p className="lead">{config.home.contactSection.text}</p>
       <ul>
-        <li>Semantic HTML, landmarks and a “skip to main content” link on every page.</li>
-        <li>Full keyboard operation with clearly visible focus indicators; dialogs trap focus and close with Escape.</li>
-        <li>Labels, hints and error messages are programmatically associated with form fields and announced by screen readers.</li>
-        <li>Text and controls meet colour-contrast requirements; status is never conveyed by colour alone.</li>
-        <li>Touch targets are at least 44 px and layouts adapt to small screens and zoom up to 200%.</li>
-        <li>Animations are subtle and are disabled when your device requests reduced motion.</li>
-        <li>Charts include text alternatives.</li>
+        {c.email && <li><strong>Email:</strong> <a href={`mailto:${c.email}`}>{c.email}</a></li>}
+        {c.phone && <li><strong>Phone:</strong> {c.phone}</li>}
+        {c.address && <li><strong>Address:</strong> {c.address}</li>}
+        {c.hours && <li><strong>Hours:</strong> {c.hours}</li>}
+        {!c.email && !c.phone && !c.address && <li>Customers can reach us from the support area of their account.</li>}
       </ul>
-      <h2>Feedback</h2>
-      <p>If you encounter a barrier, please open a customer support request and tell us the page and the assistive technology you use. We will respond and work to fix the issue.</p>
-    </Doc>
+      <p><Button to={user ? '/app/support' : '/login'} variant="primary" icon="lifebuoy">Customer support</Button></p>
+      <Alert tone="info" title="Stay safe">We will never ask for your password, one-time codes or full account numbers by email, phone or chat. <Link to="/security-info">Security information</Link></Alert>
+    </article>
   );
 }
 

@@ -11,8 +11,8 @@ A security-first digital banking web platform with an **internal software ledger
 
 ```
 Online Banking/
-├── backend/    Node.js · Express · Supabase PostgreSQL (pg) · REST API       → npm test (126 tests)
-├── frontend/   React 19 · Vite · React Router · GSAP · hand-written CSS      → npm test (37 tests)
+├── backend/    Node.js · Express · Supabase PostgreSQL (pg) · REST API       → npm test (163 tests)
+├── frontend/   React 19 · Vite · React Router · GSAP · hand-written CSS      → npm test (76 tests)
 ├── docs/       Architecture, API, security audit, compliance, Supabase setup
 ├── DEPLOYMENT.md   Vercel (frontend) + Render (backend) + Supabase, step by step
 └── render.yaml     Render Blueprint for the API
@@ -54,9 +54,9 @@ Staff must enrol an authenticator app (MFA) on first sign-in before any admin pa
 
 | Command (in `backend/`) | What it covers |
 |---|---|
-| `npm test` | 122 tests on a real Postgres engine (never reads `.env`): environment loading/validation, migrations, auth, MFA, lockout, CSRF, rate limiting, sessions, ledger math & immutability, concurrency, withdrawals, verification + signed webhook, support, notifications, RBAC matrix, the "normal user must never…" matrix, error handling, headers, emails |
+| `npm test` | 163 tests on a real Postgres engine (never reads `.env`): environment loading/validation, migrations, auth, 12-digit account numbers, display preferences, admin website/branding CMS and legal documents (publish, versions, acceptance, uploads, permissions), settings (email change, closure), MFA, lockout, CSRF, rate limiting, sessions, ledger math & immutability, concurrency, withdrawals, verification + signed webhook, support, notifications, RBAC matrix, the "normal user must never…" matrix, error handling, headers, emails |
 | `npm run test:pg` | Re-runs suites through the production `pg` driver over the Postgres wire protocol with a 1-connection pool (catches transaction deadlocks) |
-| `npm test` (in `frontend/`) | 31 tests: accessibility wiring, modal focus-trap, tables, error boundary, API client (CSRF, refresh-once, timeouts, network errors, configurable base URL), customer-facing wording and unsupported-claim checks |
+| `npm test` (in `frontend/`) | 76 tests: WCAG contrast computed from the real design tokens (light, dark, high-contrast), theme/preferences, settings pages, safe Markdown rendering, branding and fallback, accessibility wiring, modal focus-trap, tables, error boundary, API client (CSRF, refresh-once, timeouts, network errors, configurable base URL), customer-facing wording and unsupported-claim checks |
 
 ## Status and honest limitations
 
@@ -74,3 +74,6 @@ TOTP, the admin ledger-credit flow (MFA step-up) and every customer route on des
 - Staff sign in with password + TOTP only; passkey sign-in is intentionally limited to customers.
 - No automated accessibility audit (axe/Lighthouse) was run; WCAG work is by construction and manual review.
 - Terms/Privacy text is a sensible draft, **not legal advice** — have counsel review before launch.
+
+## More documentation
+[docs/WEBSITE_CMS.md](docs/WEBSITE_CMS.md) (admin-editable website, branding, legal documents) · [docs/ACCOUNT_NUMBERS.md](docs/ACCOUNT_NUMBERS.md) (12-digit numbers, migration plan, rollback) · [docs/HERO_IMAGE.md](docs/HERO_IMAGE.md) (image source and licence) · [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) · [docs/API.md](docs/API.md) · [DEPLOYMENT.md](DEPLOYMENT.md)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
+import { useSite } from './site.jsx';
 
 /** GET helper with loading/error state, cancellation of stale requests and manual reload. */
 export function useApi(path, params, { enabled = true } = {}) {
@@ -29,5 +30,6 @@ export function useDebounced(value, ms = 300) {
 }
 
 export function useDocumentTitle(title) {
-  useEffect(() => { document.title = title ? `${title} · EWB Bank` : 'EWB Bank'; }, [title]);
+  const name = useSite().config.brand.siteName;
+  useEffect(() => { document.title = title ? `${title} · ${name}` : name; }, [title, name]);
 }

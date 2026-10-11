@@ -184,7 +184,7 @@ describe('customer transfers', () => {
     const t = (over) => c.post('/api/transactions/transfers', { fromAccountId: a.accountId, toAccountNumber: b.accountNumber, amount: '5', idempotencyKey: `k-${Math.random()}-zzzz`, ...over });
     assert.equal((await t({ amount: '20.01' })).status, 409);
     assert.equal((await t({ toAccountNumber: a.accountNumber })).status, 400);
-    assert.equal((await t({ toAccountNumber: 'EWB0000000000' })).status, 404);
+    assert.equal((await t({ toAccountNumber: '605000000000' })).status, 404);
     assert.equal((await t({ toAccountNumber: dormant.accountNumber })).status, 409);
     assert.equal((await t({ fromAccountId: b.accountId })).status, 404, 'cannot spend from someone else\'s account');
     assert.equal((await t({ amount: '999999' })).status, 400, 'per-transaction limit');

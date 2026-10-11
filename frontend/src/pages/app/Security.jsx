@@ -152,12 +152,13 @@ function PasswordCard({ changedAt }) {
   );
 }
 
-export default function Security() {
-  useDocumentTitle('Security');
-  const { mfaEnrollmentRequired, user } = useAuth();
+export default function Security({ show = null, title = 'Security', subtitle = 'Control how you sign in and review activity on your account.' } = {}) {
+  useDocumentTitle(title);
+  const { mfaEnrollmentRequired, user, logout } = useAuth();
   const toast = useToast();
   const { data, loading, error, refetch, reload } = useApi('/api/security/overview', null, { enabled: !mfaEnrollmentRequired });
   const [confirmOthers, setConfirmOthers] = useState(false);
+  const [confirmAll, setConfirmAll] = useState(false);
   const [revokeId, setRevokeId] = useState(null);
   const [removeDevice, setRemoveDevice] = useState(null);
 
@@ -167,25 +168,31 @@ export default function Security() {
   if (loading) return <div className="stack"><SkeletonCard /><SkeletonCard /></div>;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
   const d = data;
+  const has = (k) => !show || show.includes(k);
   return (
     <div className="stack">
-      <PageHeader title="Security" subtitle="Control how you sign in and review activity on your account." />
+      <PageHeader title={title} subtitle={subtitle} />
+      {has('overview') && (
       <div className="grid grid-4">
         {[['Email', d.emailVerified, 'Verified'], ['Phone', d.phoneVerified, 'Verified'], ['MFA', d.mfa.enabled, 'Enabled'], ['Passkeys', d.passkeys.length > 0, `${d.passkeys.length} registered`]].map(([k, ok, label]) => (
           <div key={k} className="stat" data-animate><div className="stat-label">{k}</div><div className="stat-value" style={{ fontSize: '1.15rem' }}>{ok ? label : k === 'Phone' ? 'Not available yet' : 'Not set up'}</div>{k === 'Phone' && !ok && <div className="stat-hint">SMS verification isn’t enabled yet.</div>}<span className="stat-icon" style={ok ? undefined : { background: 'var(--warning-soft)', color: 'var(--warning)' }}><Icon name={ok ? 'check' : 'alert'} size={18} /></span></div>
         ))}
       </div>
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <PasswordCard changedAt={d.password.changedAt} />
-        <MfaCard enabled={d.mfa.enabled} remaining={d.mfa.recoveryCodesRemaining} onChanged={reload} />
-      </div>
-      {!user.isStaff && <PasskeyCard passkeys={d.passkeys} onChanged={reload} />}
-      {d.alerts.length > 0 && (
+      )}
+      {(has('password') || has('mfa')) && (
+        <div className={has('password') && has('mfa') ? 'grid grid-2' : 'stack'} style={{ alignItems: 'start' }}>
+          {has('password') && <PasswordCard changedAt={d.password.changedAt} />}
+          {has('mfa') && <MfaCard enabled={d.mfa.enabled} remaining={d.mfa.recoveryCodesRemaining} onChanged={reload} />}
+        </div>
+      )}
+      {has('passkeys') && !user.isStaff && <PasskeyCard passkeys={d.passkeys} onChanged={reload} />}
+      {has('alerts') && d.alerts.length > 0 && (
         <Card title="Security alerts" subtitle="Signals we noticed on your account. These are notices, not accusations." data-animate>
           <ul>{d.alerts.map((a) => <li key={a.id} className="kv-row"><span>{a.summary}<br /><span className="muted small">{relativeTime(a.at)}</span></span><Badge status={a.severity} /></li>)}</ul>
         </Card>
       )}
-      <Card title="Active sessions" data-animate action={d.sessions.length > 1 && <Button size="sm" variant="secondary" onClick={() => setConfirmOthers(true)}>Sign out other sessions</Button>}>
+      {has('sessions') && (
+      <Card title="Active sessions" data-animate action={d.sessions.length > 1 && <span className="row"><Button size="sm" variant="secondary" onClick={() => setConfirmOthers(true)}>Sign out other sessions</Button><Button size="sm" variant="ghost" onClick={() => setConfirmAll(true)}>Sign out everywhere</Button></span>}>
         <DataTable rows={d.sessions} caption="Active sessions" columns={[
           { key: 'device', header: 'Device', render: (s) => <span className="row" style={{ gap: 8 }}><Icon name="device" size={18} />{s.device}{s.current && <Badge tone="success">This session</Badge>}</span> },
           { key: 'ip', header: 'IP address', render: (s) => <span className="mono">{s.ip || '—'}</span> },
@@ -194,6 +201,8 @@ export default function Security() {
           { key: 'act', header: '', className: 'num', render: (s) => !s.current && <Button size="sm" variant="ghost" onClick={() => setRevokeId(s.id)}>Revoke</Button> },
         ]} />
       </Card>
+      )}
+      {has('devices') && (
       <Card title="Trusted devices" subtitle="Browsers that have signed in to your account." data-animate>
         {d.trustedDevices.length ? <DataTable rows={d.trustedDevices} caption="Devices" columns={[
           { key: 'label', header: 'Device', render: (x) => <span className="row" style={{ gap: 8 }}><Icon name="device" size={18} />{x.label}{x.trusted && <Badge tone="info">Trusted</Badge>}</span> },
@@ -202,6 +211,8 @@ export default function Security() {
           { key: 'act', header: '', className: 'num', render: (x) => <Button size="sm" variant="ghost" onClick={() => setRemoveDevice(x)}>Remove</Button> },
         ]} /> : <EmptyState icon="device" title="No devices">Devices appear after you sign in.</EmptyState>}
       </Card>
+      )}
+      {has('activity') && (
       <Card title="Recent sign-in activity" data-animate pad={false} className="card-flush">
         <DataTable rows={d.recentActivity} caption="Recent sign-in activity" columns={[
           { key: 'at', header: 'When', render: (r) => dateTime(r.at) },
@@ -211,7 +222,9 @@ export default function Security() {
           { key: 'ip', header: 'IP', render: (r) => <span className="mono">{r.ip || '—'}</span> },
         ]} empty={<EmptyState icon="clock" title="No activity yet" />} />
       </Card>
+      )}
       <ConfirmDialog open={confirmOthers} onClose={() => setConfirmOthers(false)} title="Sign out other sessions?" confirmLabel="Sign out others" message="Every session except this one will be ended immediately." onConfirm={async () => { const r = await api.post('/api/security/sessions/revoke-others'); toast.success(`${r.revoked} session(s) ended.`); reload(); }} />
+      <ConfirmDialog open={confirmAll} onClose={() => setConfirmAll(false)} title="Sign out everywhere?" confirmLabel="Sign out everywhere" tone="danger" message="Every session, including this one, will end and you will need to sign in again." onConfirm={async () => { await api.post('/api/security/sessions/revoke-others'); await logout(); }} />
       <ConfirmDialog open={!!revokeId} onClose={() => setRevokeId(null)} title="Revoke this session?" confirmLabel="Revoke" tone="danger" onConfirm={async () => { await api.delete(`/api/security/sessions/${revokeId}`); toast.success('Session revoked.'); reload(); }} />
       <ConfirmDialog open={!!removeDevice} onClose={() => setRemoveDevice(null)} title="Remove device?" confirmLabel="Remove" tone="danger" message={`“${removeDevice?.label}” will be signed out and no longer trusted.`} onConfirm={async () => { await api.delete(`/api/security/devices/${removeDevice.id}`); toast.success('Device removed.'); reload(); }} />
     </div>

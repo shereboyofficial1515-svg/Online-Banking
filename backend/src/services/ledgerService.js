@@ -51,7 +51,7 @@ export async function adjust(ctx, { accountId, direction, amountMinor, currency,
     const tx = await L.insertTransaction(t, {
       type: direction === 'credit' ? 'ledger_credit' : 'ledger_debit', status: 'completed', amount: amountMinor, currency,
       accountId, counterpartyAccountId: fundingAcct.id, initiatedBy: actorId, reason, idempotencyKey,
-      description: direction === 'credit' ? 'Ledger credit' : 'Ledger debit adjustment',
+      description: direction === 'credit' ? 'Account credit' : 'Account debit adjustment',
       metadata: { adjustment: true, note: 'Ledger adjustment recorded by authorised staff.' },
     });
     const desc = `${tx.description} (${tx.reference})`;
@@ -77,7 +77,7 @@ export async function adjust(ctx, { accountId, direction, amountMinor, currency,
     const { account, transaction } = result;
     if (result.largeEvent) security.alertAdmins(result.largeEvent).catch(() => {}); // staff alert only once the adjustment has committed
     await notify(account.user_id, {
-      category: 'transaction', title: `Ledger ${direction} posted`, link: `/app/transactions/${transaction.id}`,
+      category: 'transaction', title: `${direction === 'credit' ? 'Credit' : 'Debit'} posted to your account`, link: `/app/transactions/${transaction.id}`,
       body: `${formatMinor(amountMinor, currency)} ${direction} on account ${mask(account.account_number)}. Reference ${transaction.reference}.`,
       email: { template: 'ledger_adjustment', data: { firstName: await firstName(account.user_id), direction, amount: amountMinor, currency, reference: transaction.reference, accountMasked: mask(account.account_number), description: transaction.description, time: new Date().toUTCString() } },
     });
@@ -144,7 +144,7 @@ export async function transfer(ctx, { fromAccountId, toAccountNumber, amountMino
     if (prior) return { replayed: true, transaction: prior };
     const { rows: own } = await t.query('SELECT id FROM accounts WHERE id=$1 AND user_id=$2', [fromAccountId, userId]);
     if (!own[0]) throw notFound('Account not found.');
-    const { rows: dest } = await t.query("SELECT id FROM accounts WHERE account_number=$1 AND kind='customer'", [toAccountNumber]);
+    const { rows: dest } = await t.query("SELECT id FROM accounts WHERE (account_number=$1 OR legacy_account_number=$1) AND kind='customer'", [toAccountNumber]);
     if (!dest[0]) throw notFound('The destination account was not found.');
     if (dest[0].id === fromAccountId) throw badRequest('Choose a different destination account.');
 
