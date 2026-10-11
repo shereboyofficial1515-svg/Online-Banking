@@ -200,3 +200,20 @@ a.settings-item:hover { background: var(--hover); color: var(--text); }
 .logo-word { white-space: nowrap; }
 @media (max-width: 440px) { .hide-xs { display: none !important; } }
 .settings-link, .settings-link:hover { text-decoration: none; } .settings-link strong { color: var(--text-strong); }
+
+/* Profile header: details on one side, photo action in its own area (below on phones, right on wide screens) */
+.profile-head { display: grid; gap: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm, none); }
+.profile-id { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; }
+.profile-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; background: var(--primary); color: var(--primary-contrast, #fff); display: grid; place-items: center; font-weight: 700; font-size: 1.6rem; flex: none; border: 3px solid var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-names { min-width: 0; } .profile-names h2 { font-size: 1.25rem; margin: 0 0 2px; overflow-wrap: anywhere; } .profile-names p { margin: 0; }
+.profile-email { color: var(--text-muted); overflow-wrap: anywhere; word-break: break-word; }
+.profile-actions { display: grid; gap: 6px; justify-items: stretch; padding-top: 14px; border-top: 1px solid var(--border); } .profile-actions .btn { width: 100%; min-height: 44px; } .profile-actions p { margin: 0; text-align: center; }
+.profile-error { grid-column: 1 / -1; }
+.photo-preview { display: grid; place-items: center; padding: 8px 0 14px; } .photo-preview img { width: min(240px, 70vw); aspect-ratio: 1; border-radius: 50%; object-fit: cover; border: 3px solid var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+@media (min-width: 640px) {
+  .profile-head { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 24px 28px; gap: 24px; }
+  .profile-avatar { width: 96px; height: 96px; font-size: 1.9rem; }
+  .profile-actions { padding-top: 0; border-top: 0; justify-items: end; } .profile-actions .btn { width: auto; } .profile-actions p { text-align: right; }
+}
+.auth-top { flex-wrap: wrap; gap: 10px 14px; } .auth-top > span { min-width: 0; } .auth-top .row { flex-wrap: wrap; justify-content: flex-end; }

@@ -94,7 +94,10 @@ export function Transfers() {
   );
 }
 
-const NOTICE = 'Withdrawal requests are reviewed by EWB Bank Customer Support. Submitting a request does not move funds; our team will contact you about next steps.';
+const NOTICE = 'Submit a request and follow its status here. Requests can go through a security check before they are processed, and you will be notified when the status changes. Submitting a request does not itself move funds.';
+const REVIEW_NOTICE = 'Your account is undergoing an additional security review. Some transactions may require verification before they can be completed. We will notify you when the review is complete.';
+/** The one action a customer can take for a given status, when there genuinely is one. */
+const nextStep = (w) => (w.status === 'additional_verification_required' ? <Link to="/app/verification">Continue identity verification</Link> : w.status === 'customer_support_required' ? <Link to="/app/support/new">Open a support request</Link> : null);
 
 export function Withdrawals() {
   useDocumentTitle('Withdrawals');
@@ -134,11 +137,12 @@ export function Withdrawals() {
 
   return (
     <div className="stack">
-      <PageHeader title="Withdrawals" subtitle="Request a withdrawal for review by customer support." />
+      <PageHeader title="Withdrawals" subtitle="Request a withdrawal and follow its status." />
       <Alert tone="info" title="How withdrawals work">{NOTICE}</Alert>
+      {account?.securityReview && <Alert tone="info" title="Additional security review">{REVIEW_NOTICE}</Alert>}
       {result && (
-        <Alert tone="warning" title={`Request ${result.withdrawal.reference} — ${result.withdrawal.statusLabel}`}>
-          {result.message} <Link to="/app/support">Contact customer support</Link>
+        <Alert tone="info" title={`Request ${result.withdrawal.reference} — ${result.withdrawal.statusLabel}`}>
+          {result.message} {nextStep(result.withdrawal)}
         </Alert>
       )}
       {err && <Alert tone="danger">{err.message}</Alert>}
@@ -164,7 +168,7 @@ export function Withdrawals() {
                 <li key={w.id} className="notif" style={{ flexDirection: 'column', gap: 6 }}>
                   <div className="row-between"><strong>{money(w.amount, w.currency)}</strong><Badge status={w.status} /></div>
                   <div className="muted small">{w.destination.bankName} ••••{w.destination.last4} · <span className="mono">{w.reference}</span> · {dateTime(w.createdAt)}</div>
-                  <div className="small">{w.customerMessage}</div>
+                  <div className="small">{w.customerMessage} {nextStep(w)}</div>
                   {['requested', 'under_review', 'additional_verification_required', 'customer_support_required'].includes(w.status) && <div><Button size="sm" variant="secondary" onClick={() => setCancelId(w.id)}>Cancel request</Button></div>}
                 </li>
               ))}

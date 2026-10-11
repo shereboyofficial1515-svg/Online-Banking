@@ -43,7 +43,7 @@ export const DEFAULT_SITE_CONFIG = {
       items: [
         { icon: 'wallet', title: 'Everyday accounts', text: 'Open a checking account and track balances, activity and statements-ready transaction history in one place.' },
         { icon: 'swap', title: 'Account-to-account transfers', text: 'Move value between EWB accounts instantly, with a unique reference and a notification for both parties.' },
-        { icon: 'upload', title: 'Withdrawal requests', text: 'Submit a withdrawal request and follow its review status. Our Customer Support team reviews every request.' },
+        { icon: 'upload', title: 'Withdrawal requests', text: 'Submit a withdrawal request and follow its status. Requests can go through a security check, and you are notified when the status changes.' },
         { icon: 'id', title: 'Identity verification', text: 'Complete verification once and unlock transfers. Documents are stored privately and reviewed by compliance staff.' },
         { icon: 'bell', title: 'Alerts and notifications', text: 'Choose which updates you receive. Security notices are always on so you can spot unexpected activity quickly.' },
         { icon: 'lifebuoy', title: 'Customer support', text: 'Open a request, attach documents and follow the conversation with a dedicated support team.' },
@@ -71,7 +71,7 @@ export const DEFAULT_SITE_CONFIG = {
       items: [
         { q: 'Is EWB Bank a licensed bank? Are balances insured?', a: 'EWB Bank is a financial technology platform and does not currently hold a banking licence, so balances are maintained by EWB Bank rather than held as insured deposits. Banking services will be provided through a licensed banking partner when they become available, and we will announce it here once that is in place.' },
         { q: 'How is my balance calculated?', a: 'Your balance is the total of the completed transactions on your account. Every transaction is permanent and traceable, and a balance is never edited directly — corrections are made with new, clearly referenced transactions.' },
-        { q: 'How do withdrawals work?', a: 'Submit a withdrawal request from your dashboard and our Customer Support team will review it. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was.' },
+        { q: 'How do withdrawals work?', a: 'Submit a withdrawal request from your dashboard and follow its status. Some requests go through a security check before they are processed, and you are notified when the status changes. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was.' },
         { q: 'How does passkey sign-in work?', a: 'Your device creates a cryptographic key pair. We store only the public key. Fingerprint or face checks happen on your device, and we never receive biometric data.' },
         { q: 'How do you verify my identity?', a: 'You upload an ID document and selfie, or complete a check with a verification provider once one is connected. We keep only the minimum information required and notify you of the outcome by email.' },
         { q: 'What should I do if I notice unusual activity?', a: 'Change your password, end other sessions from the Security page, and contact customer support. We will never ask for your password or one-time codes.' },

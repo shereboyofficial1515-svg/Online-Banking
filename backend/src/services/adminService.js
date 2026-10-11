@@ -80,7 +80,7 @@ export async function customerDetail(id) {
   if (!user || user.role !== 'customer') throw notFound('Customer not found.');
   const accounts = (await db.query("SELECT * FROM accounts WHERE user_id=$1 AND kind='customer' ORDER BY created_at", [id])).rows;
   const withBalances = await Promise.all(accounts.map(async (a) => ({
-    id: a.id, accountNumber: a.account_number, type: a.type, name: a.name, currency: a.currency, status: a.status, createdAt: a.created_at, balances: await L.balances(db, a.id),
+    id: a.id, accountNumber: a.account_number, type: a.type, name: a.name, currency: a.currency, status: a.status, createdAt: a.created_at, securityReview: !!a.security_review_at, securityReviewReason: a.security_review_reason, balances: await L.balances(db, a.id),
   })));
   const [logins, tickets, withdrawals, events] = await Promise.all([
     db.query('SELECT success, method, reason, ip, user_agent, created_at FROM login_events WHERE user_id=$1 ORDER BY created_at DESC LIMIT 15', [id]),

@@ -24,6 +24,7 @@ admin.get('/withdrawals/:id', can('withdrawals.read'), id, c.withdrawalDetail);
 admin.post('/withdrawals/:id/notes', can('withdrawals.note'), id, validate(v.noteSchema), c.withdrawalNote);
 admin.post('/withdrawals/:id/actions', sensitiveLimiter, id, validate(v.withdrawalActionSchema), c.withdrawalAction);
 
+admin.post('/accounts/:id/security-review', sensitiveLimiter, can('accounts.review'), id, validate(v.securityReviewSchema), c.accountSecurityReview);
 admin.get('/account-closures', can('accounts.review'), c.listClosures);
 admin.post('/account-closures/:id', sensitiveLimiter, can('accounts.review'), id, validate(v.closureDecisionSchema), c.decideClosure);
 

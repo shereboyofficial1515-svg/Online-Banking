@@ -15,17 +15,25 @@ export const STATUS_LABELS = {
   requested: 'Requested', under_review: 'Under review', additional_verification_required: 'Additional verification required',
   customer_support_required: 'Customer support required', approved: 'Approved (internal)', rejected: 'Rejected', cancelled: 'Cancelled',
 };
-export const CUSTOMER_MESSAGE = 'Your withdrawal request requires additional account review. Please contact EWB Bank Customer Support for assistance with your account. No funds have been sent.';
+// What the customer is told for each real status. Only statuses the backend has actually set produce a message about review;
+// "contact Customer Support" appears only where staff have set a status that genuinely needs a conversation.
+export const MESSAGES = {
+  requested: 'Your withdrawal request has been received and is waiting to be processed. No funds have been sent yet. We will notify you when its status changes.',
+  under_review: 'Your account is undergoing an additional security review. Some transactions may require verification before they can be completed. We will notify you when the review is complete. No funds have been sent yet.',
+  additional_verification_required: 'Your withdrawal is awaiting security verification. Complete identity verification so we can continue; we will notify you when it is reviewed. No funds have been sent yet.',
+  customer_support_required: 'Our team needs to speak with you about this request before it can continue. Please open a Customer Support request. No funds have been sent.',
+  approved: 'Your request was approved in the internal review workflow. External bank transfers are not enabled, so no funds have been sent.',
+  rejected: 'Your request was not approved. If you have questions you can open a Customer Support request.',
+  cancelled: 'This request was cancelled.',
+};
+export const CUSTOMER_MESSAGE = MESSAGES.requested; // kept for older callers
 const OPEN = ['requested', 'under_review', 'additional_verification_required', 'customer_support_required'];
 
 const dto = (w) => ({
   id: w.id, reference: w.reference, accountId: w.account_id, amount: w.amount, currency: w.currency,
   destination: { bankName: w.destination_bank_name, accountName: w.destination_account_name, last4: w.destination_last4 },
   status: w.status, statusLabel: STATUS_LABELS[w.status], note: w.user_note, createdAt: w.created_at, updatedAt: w.updated_at,
-  customerMessage: w.status === 'approved'
-    ? 'Your request was approved in the internal review workflow. External bank transfers are not enabled, so no funds have been sent. Please contact EWB Bank Customer Support.'
-    : w.status === 'rejected' ? 'Your request was not approved. Please contact EWB Bank Customer Support for details.'
-    : w.status === 'cancelled' ? 'This request was cancelled.' : CUSTOMER_MESSAGE,
+  customerMessage: MESSAGES[w.status] || MESSAGES.requested,
 });
 
 /** Returns the withdrawal created for an earlier request with the same idempotency key, if any. */
@@ -39,14 +47,14 @@ async function findByKey(q, userId, key) {
 export async function create(ctx, input) {
   const db = getDb();
   const prior = await findByKey(db, ctx.actor.id, input.idempotencyKey);
-  if (prior) return { withdrawal: dto(prior), message: CUSTOMER_MESSAGE, replayed: true };
+  if (prior) return { withdrawal: dto(prior), message: dto(prior).customerMessage, replayed: true };
   try {
     return await createOnce(ctx, input);
   } catch (e) {
     // Two identical submissions raced: the unique (user, key) index let exactly one through. Answer the loser with the winner.
     if (e?.code === '23505' && input.idempotencyKey) {
       const winner = await findByKey(db, ctx.actor.id, input.idempotencyKey);
-      if (winner) return { withdrawal: dto(winner), message: CUSTOMER_MESSAGE, replayed: true };
+      if (winner) return { withdrawal: dto(winner), message: dto(winner).customerMessage, replayed: true };
     }
     throw e;
   }
@@ -58,18 +66,21 @@ async function createOnce(ctx, { accountId, amountMinor, bankName, accountName, 
   const out = await db.tx(async (t) => {
     const { rows: ur } = await t.query('SELECT id, status, verification_status, first_name FROM users WHERE id=$1 FOR UPDATE', [userId]);
     const user = ur[0];
-    if (user.status !== 'active') throw forbidden('Withdrawal requests are unavailable while your account is restricted. Please contact customer support.', 'ACCOUNT_RESTRICTED');
+    if (user.status !== 'active') throw forbidden('Withdrawal requests are unavailable while your profile is restricted.', 'ACCOUNT_RESTRICTED');
     const { rows: ar } = await t.query('SELECT * FROM accounts WHERE id=$1 AND user_id=$2 FOR UPDATE', [accountId, userId]);
     const account = ar[0];
     if (!account) throw notFound('Account not found.');
     if (account.status !== 'active') throw conflict('This account is not active, so withdrawal requests are unavailable.', 'ACCOUNT_NOT_ACTIVE');
     const open = (await t.query("SELECT count(*)::bigint n FROM withdrawal_requests WHERE user_id=$1 AND status = ANY($2::text[])", [userId, OPEN])).rows[0].n;
-    if (open >= 5) throw conflict('You already have several open withdrawal requests. Please contact customer support.', 'TOO_MANY_OPEN_REQUESTS');
+    if (open >= 5) throw conflict('You already have several open withdrawal requests. Please wait for one to be completed or cancel one first.', 'TOO_MANY_OPEN_REQUESTS');
     const { available } = await L.balances(t, accountId);
     if (amountMinor > available) throw badRequest('The requested amount exceeds your available balance.');
 
     const verified = user.verification_status === 'verified';
-    const status = verified ? 'requested' : 'additional_verification_required';
+    // Decided here, on the server, under the account row lock: identity not verified -> awaiting verification;
+    // account under security review -> under review; otherwise the normal flow.
+    const underReview = !!account.security_review_at;
+    const status = !verified ? 'additional_verification_required' : underReview ? 'under_review' : 'requested';
     const reference = newReference('WDR');
     const tx = await L.insertTransaction(t, {
       type: 'withdrawal', status: verified ? 'pending' : 'blocked', amount: amountMinor, currency: account.currency, accountId, initiatedBy: userId,
@@ -79,9 +90,9 @@ async function createOnce(ctx, { accountId, amountMinor, bankName, accountName, 
       `INSERT INTO withdrawal_requests (reference, user_id, account_id, transaction_id, amount, currency, destination_bank_name, destination_account_name, destination_last4, user_note, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [reference, userId, accountId, tx.id, amountMinor, account.currency, bankName, accountName, last4, note ?? null, status]);
-    await audit.record(t, ctx, { action: 'withdrawal.request', targetType: 'withdrawal', targetId: rows[0].id, accountId, next: { status, amountMinor }, metadata: { reference, verified } });
+    await audit.record(t, ctx, { action: 'withdrawal.request', targetType: 'withdrawal', targetId: rows[0].id, accountId, next: { status, amountMinor }, metadata: { reference, verified, underReview } });
     const recent = (await t.query("SELECT count(*)::bigint n FROM withdrawal_requests WHERE user_id=$1 AND created_at > now() - interval '24 hours'", [userId])).rows[0].n;
-    return { w: rows[0], user, verified, recent, tx };
+    return { w: rows[0], user, verified, underReview, recent, tx };
   });
 
   if (out.recent >= config.ledger.withdrawalAttemptAlertThreshold) {
@@ -89,11 +100,13 @@ async function createOnce(ctx, { accountId, amountMinor, bankName, accountName, 
   }
   const base = { firstName: out.user.first_name, amount: amountMinor, currency: out.w.currency, reference: out.w.reference, statusLabel: STATUS_LABELS[out.w.status] };
   await notify(userId, {
-    category: 'withdrawal', title: out.verified ? 'Withdrawal request received' : 'Withdrawal request on hold', link: '/app/withdrawals',
-    body: out.verified ? `Request ${out.w.reference} for ${formatMinor(amountMinor, out.w.currency)} needs account review. No funds have been sent.` : `Request ${out.w.reference} is on hold until your identity is verified. No funds have been sent.`,
-    email: out.verified ? { template: 'withdrawal_received', data: base } : { template: 'withdrawal_blocked', data: { ...base, message: 'Your request is on hold because identity verification is required before it can be reviewed.' } },
+    category: 'withdrawal', title: !out.verified ? 'Withdrawal awaiting security verification' : out.underReview ? 'Withdrawal pending security review' : 'Withdrawal request received', link: '/app/withdrawals',
+    body: !out.verified ? `Request ${out.w.reference} is awaiting security verification. No funds have been sent.`
+      : out.underReview ? `Request ${out.w.reference} for ${formatMinor(amountMinor, out.w.currency)} is pending an additional security review. No funds have been sent.`
+      : `Request ${out.w.reference} for ${formatMinor(amountMinor, out.w.currency)} was received. No funds have been sent yet.`,
+    email: { template: out.verified ? 'withdrawal_received' : 'withdrawal_blocked', data: { ...base, message: dto(out.w).customerMessage.replace(/\s*No funds have been sent( yet)?\.?/i, '').trim() } },
   });
-  return { withdrawal: dto(out.w), message: CUSTOMER_MESSAGE };
+  return { withdrawal: dto(out.w), message: dto(out.w).customerMessage };
 }
 
 export async function listForUser(userId) {
@@ -192,6 +205,8 @@ export async function transition(ctx, id, action, reason) {
       const { rows: ur } = await t.query('SELECT verification_status, status FROM users WHERE id=$1', [cur.user_id]);
       if (ur[0].verification_status !== 'verified') throw conflict('The customer must complete identity verification before approval.', 'VERIFICATION_REQUIRED');
       if (ur[0].status !== 'active') throw conflict('The customer account is restricted.', 'ACCOUNT_RESTRICTED');
+      const rev = (await t.query('SELECT security_review_at FROM accounts WHERE id=$1 FOR UPDATE', [cur.account_id])).rows[0];
+      if (rev?.security_review_at) throw conflict('This account is under additional security review. Clear the review before approving a withdrawal.', 'ACCOUNT_UNDER_REVIEW');
       const { ledger, held } = await L.balances(t, cur.account_id);
       if (ledger < held) throw conflict('Your balance does not cover this and your other open requests.', 'INSUFFICIENT_FUNDS');
     }
@@ -216,4 +231,33 @@ export async function transition(ctx, id, action, reason) {
     email: { template: 'withdrawal_update', data: { firstName: u[0]?.first_name, amount: out.w.amount, currency: out.w.currency, reference: out.w.reference, statusLabel: STATUS_LABELS[out.w.status], message: dto(out.w).customerMessage } },
   });
   return dto(out.w);
+}
+
+
+// ───────────────────────── account security review (staff) ─────────────────────────
+/**
+ * Places an account under, or clears it from, additional security review. Open "requested" withdrawals on a flagged account move
+ * to "under_review" so nothing waiting can slip through. Other accounts (including the customer's other accounts and other
+ * customers) are not affected. Clearing does NOT approve anything: waiting requests keep their status until staff decide them.
+ */
+export async function setSecurityReview(ctx, accountId, { enabled, reason }) {
+  const db = getDb();
+  const out = await db.tx(async (t) => {
+    const { rows } = await t.query("SELECT * FROM accounts WHERE id=$1 AND kind='customer' FOR UPDATE", [accountId]);
+    const a = rows[0];
+    if (!a) throw notFound('Account not found.');
+    if (!!a.security_review_at === !!enabled) throw conflict(enabled ? 'This account is already under security review.' : 'This account is not under security review.', 'NO_CHANGE');
+    await t.query('UPDATE accounts SET security_review_at=$2, security_review_reason=$3 WHERE id=$1', [accountId, enabled ? new Date() : null, enabled ? reason : null]);
+    let moved = 0;
+    if (enabled) {
+      const r = await t.query("UPDATE withdrawal_requests SET status='under_review', updated_at=now() WHERE account_id=$1 AND status='requested' RETURNING id", [accountId]);
+      moved = r.rows.length;
+    }
+    await audit.record(t, ctx, { action: enabled ? 'account.security_review_start' : 'account.security_review_clear', targetType: 'account', targetId: accountId, accountId, reason, previous: { underReview: !!a.security_review_at }, next: { underReview: !!enabled }, metadata: { withdrawalsMoved: moved } });
+    return { a, moved };
+  });
+  await notify(out.a.user_id, enabled
+    ? { category: 'account', title: 'Additional security review', link: '/app/withdrawals', body: 'Your account is undergoing an additional security review to help protect it. Some transactions may require verification before they can be completed. We will notify you when the review is complete.' }
+    : { category: 'account', title: 'Security review complete', link: '/app/withdrawals', body: 'The additional security review on your account is complete.' });
+  return { accountId, underReview: !!enabled, withdrawalsMoved: out.moved };
 }

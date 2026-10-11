@@ -86,6 +86,7 @@ export const emailChangeRequestSchema = z.object({ newEmail: z.string().trim().t
 export const emailChangeConfirmSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.') });
 export const closureRequestSchema = z.object({ reason: z.string().trim().max(500).optional(), password });
 export const closureDecisionSchema = z.object({ decision: z.enum(['complete', 'decline']), note: z.string().trim().max(500).optional() });
+export const securityReviewSchema = z.object({ enabled: z.boolean(), reason: z.string().trim().min(5, 'Enter a reason of at least 5 characters.').max(500) });
 export const feedbackSchema = z.object({ kind: z.enum(['suggestion', 'problem', 'compliment']), message: z.string().trim().min(10, 'Please write at least 10 characters.').max(2000) });
 export const openAccountSchema = z.object({ type: z.enum(['checking', 'savings']), name: z.string().trim().max(40).optional() });
 export const idParam = z.object({ id: uuid });

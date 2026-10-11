@@ -84,7 +84,7 @@ export const DEFAULT_SITE_CONFIG = {
         {
           "icon": "upload",
           "title": "Withdrawal requests",
-          "text": "Submit a withdrawal request and follow its review status. Our Customer Support team reviews every request."
+          "text": "Submit a withdrawal request and follow its status. Requests can go through a security check, and you are notified when the status changes."
         },
         {
           "icon": "id",
@@ -163,7 +163,7 @@ export const DEFAULT_SITE_CONFIG = {
         },
         {
           "q": "How do withdrawals work?",
-          "a": "Submit a withdrawal request from your dashboard and our Customer Support team will review it. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was."
+          "a": "Submit a withdrawal request from your dashboard and follow its status. Some requests go through a security check before they are processed, and you are notified when the status changes. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was."
         },
         {
           "q": "How does passkey sign-in work?",
