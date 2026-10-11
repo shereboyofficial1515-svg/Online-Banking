@@ -2,12 +2,12 @@
 import { Router } from 'express';
 import * as c from '../controllers/customerController.js';
 import { validate } from '../middleware/validate.js';
-import { requireAuth, requireCustomer } from '../middleware/authenticate.js';
+import { requireAuth, requireCustomer, requirePinSet } from '../middleware/authenticate.js';
 import { sensitiveLimiter, uploadLimiter } from '../middleware/rateLimit.js';
 import { uploadOne, uploadMany } from '../middleware/upload.js';
 import * as v from '../validators/index.js';
 
-const guard = [requireAuth(), requireCustomer];
+const guard = [requireAuth(), requireCustomer, requirePinSet];
 const mk = () => Router();
 
 export const users = mk();
@@ -41,6 +41,7 @@ accounts.get('/:id/summary', validate(v.idParam, 'params'), c.accountSummary);
 export const transactions = mk();
 transactions.use(guard);
 transactions.get('/', validate(v.transactionQuery, 'query'), c.listTransactions);
+transactions.post('/external-transfers', sensitiveLimiter, validate(v.externalTransferSchema), c.externalTransfer);
 transactions.post('/transfers', sensitiveLimiter, validate(v.transferSchema), c.createTransfer);
 transactions.get('/:id', validate(v.idParam, 'params'), c.getTransaction);
 
@@ -81,6 +82,8 @@ security.post('/mfa/setup', requireAuth({ allowLimited: true }), c.mfaSetup);
 security.post('/mfa/enable', requireAuth({ allowLimited: true }), validate(v.mfaCodeSchema), c.mfaEnable);
 security.use(requireAuth());
 security.get('/overview', c.securityOverview);
+security.post('/pin', sensitiveLimiter, validate(v.setPinSchema), c.setSessionPin);
+security.patch('/unlock-methods', validate(v.unlockMethodsSchema), c.setUnlockMethods);
 security.post('/password', sensitiveLimiter, validate(v.changePasswordSchema), c.changePassword);
 security.post('/mfa/disable', sensitiveLimiter, validate(v.mfaDisableSchema), c.mfaDisable);
 security.post('/mfa/recovery-codes', sensitiveLimiter, validate(v.mfaCodeSchema), c.mfaRecovery);

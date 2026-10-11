@@ -39,3 +39,9 @@ export const requireStaff = (req, res, next) => {
 /** Backend permission check. The frontend hides buttons, but this is the control that matters. */
 export const requirePermission = (permission) => (req, res, next) =>
   can(req.auth?.user.role, permission) ? next() : next(forbidden('You do not have permission to perform this action.', 'FORBIDDEN'));
+
+/** Customers must have a session PIN before they can use banking features (staff are exempt: they unlock with password + authenticator code). */
+export const requirePinSet = (req, res, next) =>
+  (req.auth?.user.role === 'customer' && !req.auth.user.session_pin_hash
+    ? next(forbidden('Set up your six-digit session PIN to continue.', 'PIN_SETUP_REQUIRED'))
+    : next());

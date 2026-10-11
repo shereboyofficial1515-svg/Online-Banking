@@ -14,7 +14,6 @@ const TransactionDetail = lazy(() => import('./pages/app/Transactions.jsx').then
 const TH = (n) => lazy(() => import('./pages/app/TransferHub.jsx').then((m) => ({ default: m[n] })));
 const TransferHub = TH('TransferHub'); const BankTransfer = TH('BankTransfer'); const SavePage = TH('SavePage');
 const Transfers = lazy(() => import('./pages/app/Money.jsx').then((m) => ({ default: m.Transfers })));
-const Withdrawals = lazy(() => import('./pages/app/Money.jsx').then((m) => ({ default: m.Withdrawals })));
 const Verification = lazy(() => import('./pages/app/Account.jsx').then((m) => ({ default: m.Verification })));
 const Notifications = lazy(() => import('./pages/app/Account.jsx').then((m) => ({ default: m.Notifications })));
 const ST = (n) => lazy(() => import('./pages/app/Settings.jsx').then((m) => ({ default: m[n] })));
@@ -70,7 +69,7 @@ export default function App() {
           <Route path="transfers/ewb" element={<Transfers />} />
           <Route path="transfers/bank" element={<BankTransfer />} />
           <Route path="transfers/save" element={<SavePage />} />
-          <Route path="withdrawals" element={<Withdrawals />} />
+          <Route path="withdrawals" element={<Navigate to="/app/transfers" replace />} />
           <Route path="profile" element={<Navigate to="/app/settings/profile" replace />} />
           <Route path="verification" element={<Verification />} />
           <Route path="security" element={<Security />} />

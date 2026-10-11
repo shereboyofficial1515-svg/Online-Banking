@@ -99,7 +99,7 @@ describe('savings availability (management controlled)', () => {
     const r = await c.post('/api/accounts', { type: 'savings', name: 'Rainy day' });
     assert.equal(r.status, 403);
     assert.equal(r.body.error.code, 'SAVINGS_UNAVAILABLE');
-    assert.match(r.body.error.message, /not available at the moment/i);
+    assert.match(r.body.error.message, /currently unavailable/i);
     assert.equal((await db.query("SELECT count(*)::int n FROM accounts WHERE user_id=$1 AND type='savings'", [cust.user.id])).rows[0].n, 0);
     assert.equal((await c.post('/api/accounts', { type: 'checking', name: 'Second checking' })).status, 201, 'unrelated account opening still works');
   });

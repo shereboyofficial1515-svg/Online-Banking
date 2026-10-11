@@ -15,7 +15,7 @@ vi.mock('../lib/api.js', async (orig) => {
     if (path === '/api/auth/session') return Promise.resolve(state.locked ? { authenticated: true, locked: true, lock: { firstName: 'Avery', mfaRequired: false, passkeyAvailable: false } } : { authenticated: true, locked: false, user: USER, permissions: [] });
     if (path === '/api/auth/lock') { state.locked = true; return Promise.resolve({ locked: true }); }
     if (path === '/api/auth/back') return Promise.resolve({ locked: state.locked });
-    if (path === '/api/auth/unlock') { if (!state.unlockOk) return Promise.reject(Object.assign(new Error('That password is incorrect.'), { status: 422, details: { password: ['That password is incorrect.'] } })); state.locked = false; return Promise.resolve({ locked: false }); }
+    if (path === '/api/auth/unlock') { if (!state.unlockOk) return Promise.reject(Object.assign(new Error('That PIN is incorrect.'), { status: 422, details: { pin: ['That PIN is incorrect.'] } })); state.locked = false; return Promise.resolve({ locked: false }); }
     if (path === '/api/auth/logout') return state.logoutError ? Promise.reject(Object.assign(new Error('We couldn’t reach EWB Bank.'), { code: 'NETWORK_ERROR' })) : Promise.resolve({ ok: true });
     return Promise.resolve({});
   };
@@ -71,24 +71,42 @@ describe('time away from the site', () => {
     now.mockRestore();
   });
 
-  it('a wrong password keeps the lock, the right password releases it and keeps unsaved text', async () => {
+  it('a wrong PIN keeps the lock, the right PIN releases it and keeps unsaved text; the PIN is never stored', async () => {
     mount();
     await screen.findByText('Avery');
     fireEvent.change(screen.getByLabelText('draft note'), { target: { value: 'half-written message' } });
     act(() => { window.dispatchEvent(new Event('ewb:session-locked')); });
     const dlg = await screen.findByRole('dialog', { name: /Session locked/ });
+    const field = screen.getByLabelText(/6-digit PIN/);
+    expect(field).toHaveAttribute('inputmode', 'numeric');
+    expect(field).toHaveAttribute('type', 'password');
+    expect(field).toHaveAttribute('maxlength', '6');
     state.unlockOk = false;
-    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'bad' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }));
-    expect(await screen.findByText('That password is incorrect.')).toBeInTheDocument();
+    fireEvent.change(field, { target: { value: '12ab34cd56789' } });
+    expect(field).toHaveValue('123456'); // non-digits dropped, capped at six; the sixth digit submits by itself
+    expect(await screen.findByText('That PIN is incorrect.')).toBeInTheDocument();
     expect(dlg).toBeInTheDocument();
     state.unlockOk = true;
-    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'right-password' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }));
+    fireEvent.change(screen.getByLabelText(/6-digit PIN/), { target: { value: '482915' } });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /Session locked/ })).toBeNull());
     expect(screen.getByLabelText('draft note')).toHaveValue('half-written message');
-    expect(calls.some(([m, p]) => p === '/api/auth/unlock' && m === 'POST')).toBe(true);
-    expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain('right-password');
+    expect(calls.some(([m, p, b]) => p === '/api/auth/unlock' && m === 'POST' && b?.pin === '482915')).toBe(true);
+    expect(JSON.stringify(localStorage) + JSON.stringify(sessionStorage)).not.toContain('482915');
+  });
+
+  it('with no activity for the idle limit the page locks itself; activity keeps it open and sends heartbeats', async () => {
+    const now = vi.spyOn(Date, 'now');
+    const t0 = Date.now(); now.mockReturnValue(t0);
+    mount();
+    await screen.findByText('Avery');
+    await waitFor(() => expect(sent('/api/auth/back')).toBeGreaterThan(0));
+    now.mockReturnValue(t0 + 20_000);
+    act(() => { window.dispatchEvent(new Event('pointerdown')); });
+    await waitFor(() => expect(sent('/api/auth/back')).toBeGreaterThan(1)); // activity heartbeat
+    now.mockReturnValue(t0 + 20_000 + 61_000); // a minute of silence after the last activity
+    expect(await screen.findByRole('dialog', { name: /Session locked/ }, { timeout: 4000 })).toBeInTheDocument();
+    expect(sent('/api/auth/lock')).toBe(1);
+    now.mockRestore();
   });
 
   it('the page-load check also catches a tab restored after a long absence (timestamp survives in sessionStorage)', async () => {

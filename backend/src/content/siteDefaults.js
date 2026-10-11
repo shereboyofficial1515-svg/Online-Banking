@@ -43,7 +43,7 @@ export const DEFAULT_SITE_CONFIG = {
       items: [
         { icon: 'wallet', title: 'Everyday accounts', text: 'Open a checking account and track balances, activity and statements-ready transaction history in one place.' },
         { icon: 'swap', title: 'Account-to-account transfers', text: 'Move value between EWB accounts instantly, with a unique reference and a notification for both parties.' },
-        { icon: 'upload', title: 'Withdrawal requests', text: 'Submit a withdrawal request and follow its status. Requests can go through a security check, and you are notified when the status changes.' },
+        { icon: 'upload', title: 'Transfers to other banks', text: 'Send money to accounts at other banks from your dashboard. Availability is shown clearly, and the status you see always reflects what has actually happened.' },
         { icon: 'id', title: 'Identity verification', text: 'Complete verification once and unlock transfers. Documents are stored privately and reviewed by compliance staff.' },
         { icon: 'bell', title: 'Alerts and notifications', text: 'Choose which updates you receive. Security notices are always on so you can spot unexpected activity quickly.' },
         { icon: 'lifebuoy', title: 'Customer support', text: 'Open a request, attach documents and follow the conversation with a dedicated support team.' },
@@ -71,7 +71,7 @@ export const DEFAULT_SITE_CONFIG = {
       items: [
         { q: 'How is my balance held?', a: 'Your account balance is maintained by EWB Bank and equals the total of the completed transactions on your account. Every transaction is recorded permanently, and full details are in our Terms of Service.' },
         { q: 'How is my balance calculated?', a: 'Your balance is the total of the completed transactions on your account. Every transaction is permanent and traceable, and a balance is never edited directly — corrections are made with new, clearly referenced transactions.' },
-        { q: 'How do withdrawals work?', a: 'Submit a withdrawal request from your dashboard and follow its status. Some requests go through a security check before they are processed, and you are notified when the status changes. The status you see always reflects what has actually happened — we never show a transfer as sent unless it was.' },
+        { q: 'How do transfers work?', a: 'Choose To EWB for another EWB Bank account or To Bank for an account at another bank. Each option shows whether it is available, and the status you see always reflects what has actually happened — we never show a transfer as sent unless it was.' },
         { q: 'How does passkey sign-in work?', a: 'Your device creates a cryptographic key pair. We store only the public key. Fingerprint or face checks happen on your device, and we never receive biometric data.' },
         { q: 'How do you verify my identity?', a: 'You upload an ID document and selfie, or complete a check with a verification provider once one is connected. We keep only the minimum information required and notify you of the outcome by email.' },
         { q: 'What should I do if I notice unusual activity?', a: 'Change your password, end other sessions from the Security page, and contact customer support. We will never ask for your password or one-time codes.' },
@@ -82,6 +82,6 @@ export const DEFAULT_SITE_CONFIG = {
   about: {
     title: 'About EWB Bank',
     intro: 'EWB Bank is a digital banking platform focused on security, transparency and a calm, clear experience.',
-    body: '## What we do\nWe give customers one secure place to manage accounts, move funds between EWB accounts, request withdrawals and get help from a real support team.\n\n## How we work\n- Security first: passkeys, multi-factor authentication and session control are built in.\n- Transparency: every transaction is recorded permanently and can be traced.\n- Clarity: plain-language statuses and straightforward terms.\n\n## Our approach\nWe keep the experience simple: a clear view of your accounts, clear statuses for every request, and a support team that is easy to reach.',
+    body: '## What we do\nWe give customers one secure place to manage accounts, move funds between EWB accounts, send money to other banks and get help from a real support team.\n\n## How we work\n- Security first: passkeys, multi-factor authentication and session control are built in.\n- Transparency: every transaction is recorded permanently and can be traced.\n- Clarity: plain-language statuses and straightforward terms.\n\n## Our approach\nWe keep the experience simple: a clear view of your accounts, clear statuses for every request, and a support team that is easy to reach.',
   },
 };

@@ -28,3 +28,5 @@ with the service-role key (server only). Authentication is the application's own
 
 Because the API role owns the tables it bypasses RLS by design; authorisation is enforced in the API (and mirrored by
 the RLS "deny by default" posture for any direct PostgREST access).
+
+* `012_session_pin.sql` - PIN hash/attempt columns on `users`; `locked_at`, `away_since`, `activity_at`, `unlock_failures` on `sessions` (additive only).

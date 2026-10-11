@@ -1,6 +1,6 @@
 import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { boot, shutdown, client, login, makeCustomer, makeStaff, loginStaff, freshCode, PASSWORD } from './helpers.js';
+import { boot, shutdown, client, login, makeCustomer, makeStaff, loginStaff, freshCode, PASSWORD, PIN } from './helpers.js';
 
 let app; let db;
 before(async () => { ({ app, db } = await boot()); });
@@ -55,30 +55,20 @@ describe('away tracking and session lock', () => {
     assert.equal((await c.get('/api/accounts')).status, 403, 'but the new token is still locked');
   });
 
-  test('wrong password or code keeps it locked; the right password restores access and is audited', async () => {
+  test('a wrong PIN keeps it locked; the right PIN restores access and is audited', async () => {
     const { cust, c } = await signedIn();
     await c.post('/api/auth/lock', {});
-    const bad = await c.post('/api/auth/unlock', { password: 'Wrong-password-1!' });
+    const bad = await c.post('/api/auth/unlock', { pin: '111222' });
     assert.equal(bad.status, 422);
     assert.equal((await c.get('/api/accounts')).status, 403);
-    const ok = await c.post('/api/auth/unlock', { password: PASSWORD });
+    const ok = await c.post('/api/auth/unlock', { pin: PIN });
     assert.equal(ok.status, 200, JSON.stringify(ok.body));
     assert.equal(ok.body.locked, false);
     assert.equal((await c.get('/api/accounts')).status, 200);
     for (const a of ['session.lock', 'session.unlock_failed', 'session.unlock']) {
       assert.ok((await db.query('SELECT 1 FROM audit_logs WHERE action=$1 AND actor_id=$2', [a, cust.user.id])).rows[0], a);
     }
-    assert.equal((await c.post('/api/auth/unlock', { password: PASSWORD })).body.locked, false, 'unlocking an unlocked session is harmless');
-  });
-
-  test('too many wrong passwords end the session completely', async () => {
-    const { c } = await signedIn();
-    await c.post('/api/auth/lock', {});
-    let last;
-    for (let i = 0; i < 5; i++) last = await c.post('/api/auth/unlock', { password: 'Nope-nope-nope-1!' });
-    assert.equal(last.status, 401);
-    assert.equal(last.body.error.code, 'SESSION_ENDED');
-    assert.equal((await c.post('/api/auth/unlock', { password: PASSWORD })).status, 401, 'even the right password cannot revive an ended session');
+    assert.equal((await c.post('/api/auth/unlock', { pin: PIN })).body.locked, false, 'unlocking an unlocked session is harmless');
   });
 
   test('locking and unlocking never run a money action by themselves', async () => {

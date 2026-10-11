@@ -1,5 +1,6 @@
 // HTTP adapters for the customer-facing APIs. Each handler takes identity ONLY from req.auth (the verified
 // session) - ids in URLs/bodies are treated as lookup keys that must resolve to something the user owns.
+import * as pins from '../services/pinService.js';
 import * as features from '../services/featureService.js';
 import * as settings from '../services/settingsService.js';
 import * as legal from '../services/legalService.js';
@@ -17,6 +18,8 @@ import * as center from '../services/securityCenterService.js';
 import * as mfa from '../services/mfaService.js';
 import * as passkeys from '../services/passkeyService.js';
 import * as authService from '../services/authService.js';
+import config from '../config/index.js';
+import { AppError } from '../utils/errors.js';
 import { parseAmountToMinor } from '../utils/money.js';
 import { asyncHandler as h } from '../utils/asyncHandler.js';
 import { clearSessionCookies } from './authController.js';
@@ -53,7 +56,12 @@ export const createTransfer = h(async (req, res) => {
 // withdrawals
 export const listWithdrawals = h(async (req, res) => res.json({ withdrawals: await withdrawals.listForUser(uid(req)) }));
 export const getWithdrawal = h(async (req, res) => res.json({ withdrawal: await withdrawals.getForUser(uid(req), req.params.id) }));
-export const createWithdrawal = h(async (req, res) => res.status(202).json(await withdrawals.create(req.ctx, { ...req.body, amountMinor: parseAmountToMinor(req.body.amount) })));
+// Customer-initiated withdrawal requests were retired (the customer app uses To EWB / To Bank). Existing records, history and the staff
+// workflow are untouched; only creating NEW requests is closed, unless WITHDRAWAL_REQUESTS_ENABLED=true.
+export const createWithdrawal = h(async (req, res) => {
+  if (!config.features.withdrawalRequests) throw new AppError(410, 'WITHDRAWALS_RETIRED', 'Withdrawal requests are no longer available. Use To EWB or To Bank to move money.');
+  res.status(202).json(await withdrawals.create(req.ctx, { ...req.body, amountMinor: parseAmountToMinor(req.body.amount) }));
+});
 export const cancelWithdrawal = h(async (req, res) => res.json({ withdrawal: await withdrawals.cancel(req.ctx, req.params.id) }));
 
 // verification
@@ -114,4 +122,18 @@ export const sendFeedback = h(async (req, res) => {
   res.status(201).json({ ticket: await support.create(req.ctx, { category: 'other', subject: `Feedback: ${label}`, message: req.body.message }, []) });
 });
 
-export const featureStatus = h(async (req, res) => res.json({ savings: { enabled: await features.isSavingsEnabled() } }));
+export const featureStatus = h(async (req, res) => res.json({ savings: { enabled: await features.isEnabled('savings') }, transfers: { enabled: await features.isEnabled('transfers') }, supportEmail: features.supportEmail() }));
+
+/** To Bank. No external payment provider is connected: while transfers are in maintenance this says so, afterwards it honestly says the rail is not available. It never debits, records or approves anything. */
+export const externalTransfer = h(async (req) => {
+  await features.assertTransfersEnabled();
+  throw new AppError(501, 'PROVIDER_NOT_CONFIGURED', 'Transfers to other banks are not available yet.');
+});
+
+// session PIN and unlock methods
+export const setSessionPin = h(async (req, res) => res.json(await pins.setPin(req.ctx, req.auth.user, req.body)));
+export const setUnlockMethods = h(async (req, res) => {
+  const db = (await import('../db/index.js')).getDb();
+  await db.query('UPDATE users SET unlock_passkey_enabled=$2 WHERE id=$1', [uid(req), req.body.passkey]);
+  res.json({ unlockPasskeyEnabled: req.body.passkey });
+});

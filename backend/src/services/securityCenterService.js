@@ -20,6 +20,7 @@ export async function overview(user, currentSessionId) {
   ]);
   return {
     password: { changedAt: user.password_changed_at },
+    pin: { set: !!user.session_pin_hash, setAt: user.session_pin_set_at, passkeyUnlock: user.unlock_passkey_enabled !== false },
     mfa: { enabled: user.mfa_enabled, recoveryCodesRemaining: recovery },
     emailVerified: !!user.email_verified_at,
     phoneVerified: !!user.phone_verified_at,

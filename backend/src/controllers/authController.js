@@ -56,6 +56,7 @@ export const publicConfig = (req, res) => res.json({
   supportEmail: config.email.supportEmail.endsWith('.invalid') ? null : config.email.supportEmail,
   maxUploadBytes: config.upload.maxBytes,
   awayLockSeconds: config.auth.awayLockSeconds,
+  idleLockSeconds: config.auth.idleLockSeconds,
 });
 
 export const register = asyncHandler(async (req, res) => {
@@ -107,7 +108,7 @@ export const session = asyncHandler(async (req, res) => {
     try {
       const { session: s, user } = await sessions.authenticate(token);
       // A locked session reveals only what the lock screen needs. No profile, permissions, balances or contact details.
-      if (s.locked) return res.json({ authenticated: true, locked: true, lock: { firstName: user.first_name, emailHint: String(user.email).replace(/^(.).*(@.*)$/, '$1•••$2'), mfaRequired: !!user.mfa_enabled, passkeyAvailable: user.role === 'customer' && await passkeys.hasAny(user.id) } });
+      if (s.locked) return res.json({ authenticated: true, locked: true, lock: { firstName: user.first_name, emailHint: String(user.email).replace(/^(.).*(@.*)$/, '$1•••$2'), mfaRequired: !!user.mfa_enabled, passkeyAvailable: user.role === 'customer' && user.unlock_passkey_enabled !== false && await passkeys.hasAny(user.id), method: user.role === 'customer' ? 'pin' : 'password', pinSet: !!user.session_pin_hash } });
       return res.json({ authenticated: true, locked: false, ...sessionPayload(user, s) });
     } catch { /* fall through: expired or revoked */ }
   }
@@ -132,6 +133,8 @@ export const passkeyVerify = asyncHandler(async (req, res) => {
 export const away = asyncHandler(async (req, res) => res.json(await reauth.markAway(req.auth.session)));
 export const back = asyncHandler(async (req, res) => res.json(await reauth.markBack(req.ctx, req.auth.session)));
 export const lock = asyncHandler(async (req, res) => res.json(await reauth.lock(req.ctx, req.auth.session)));
-export const unlock = asyncHandler(async (req, res) => res.json(await reauth.unlockWithPassword(req.ctx, req.auth.user, req.auth.session, req.body)));
+export const unlock = asyncHandler(async (req, res) => res.json(req.body.pin
+  ? await reauth.unlockWithPin(req.ctx, req.auth.user, req.auth.session, req.body)
+  : await reauth.unlockWithPassword(req.ctx, req.auth.user, req.auth.session, req.body)));
 export const unlockPasskeyOptions = asyncHandler(async (req, res) => res.json(await reauth.passkeyOptions(req.auth.user)));
 export const unlockPasskeyVerify = asyncHandler(async (req, res) => res.json(await reauth.unlockWithPasskey(req.ctx, req.auth.user, req.auth.session, req.body)));
