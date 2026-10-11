@@ -11,6 +11,20 @@ Why a rewrite instead of calling Render directly: session cookies are `HttpOnly;
 
 ---
 
+## Production domains
+
+| Role | Address |
+| --- | --- |
+| Website (Vercel) | `https://eastwesthub.site` |
+| API (Render, custom domain) | `https://api.eastwesthub.site` |
+
+* `frontend/vercel.json` rewrites `/api/*` to `https://api.eastwesthub.site/api/*`, so the browser only ever talks to `eastwesthub.site` and the session cookies stay first-party (`SameSite=Strict`).
+* **Render environment (dashboard):** set `APP_URL=https://eastwesthub.site` (no trailing slash). It drives CORS, the CSRF origin check, WebAuthn and email links. Add `CORS_ORIGINS=https://www.eastwesthub.site` only if you also serve the `www` host. Leave `COOKIE_DOMAIN` empty and keep `TRUST_PROXY_HOPS=2`.
+* **Passkeys:** the WebAuthn relying-party ID defaults to the hostname of `APP_URL`, so it becomes `eastwesthub.site`. Passkeys registered on the old address will no longer work; customers sign in with their password and register a new passkey.
+* **Email:** to send from the new domain, verify `eastwesthub.site` in Resend and set `RESEND_FROM_EMAIL` / `SUPPORT_EMAIL` accordingly.
+* After changing `APP_URL`, redeploy the API, then redeploy the website.
+
+
 ## 1. Local development
 
 **Prerequisites:** Node.js ≥ 22.9, npm ≥ 10. No local database needed (embedded PGlite) unless you point at Supabase.
