@@ -94,12 +94,14 @@ export function CustomerDetail() {
   const toast = useToast();
   const { data, loading, error, refetch, reload } = useApi(`/api/admin/customers/${id}`);
   const [action, setAction] = useState(null);
+  const [reviewFor, setReviewFor] = useState(null);
   useDocumentTitle('Customer');
   if (loading) return <div className="stack"><SkeletonCard /><SkeletonCard /></div>;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
   const d = data;
   const p = d.profile;
   const run = async ({ reason }) => { await api.post(`/api/admin/customers/${id}/actions`, { action, reason }); toast.success(`${ACTIONS[action].label}: done.`); reload(); };
+  const runReview = async ({ reason }) => { await api.post(`/api/admin/accounts/${reviewFor.id}/security-review`, { enabled: !reviewFor.securityReview, reason }); toast.success(reviewFor.securityReview ? 'Security review cleared.' : 'Account placed under security review.'); reload(); };
   return (
     <div className="stack">
       <PageHeader title={`${p.firstName} ${p.lastName}`} subtitle={<>{p.email} · <Badge status={p.status} /> <Badge status={p.verificationStatus} /></>}
@@ -128,6 +130,8 @@ export function CustomerDetail() {
               <div className="mono small muted">{a.accountNumber}</div>
               <KeyValue items={[{ label: 'Ledger balance', value: money(a.balances.ledger, a.currency) }, { label: 'Available', value: money(a.balances.available, a.currency) }, { label: 'Held', value: money(a.balances.held, a.currency) }]} />
               {can('ledger.read') && <Button size="sm" variant="ghost" to={`/admin/ledger?inspect=${a.id}`}>Inspect ledger</Button>}
+              {a.securityReview && <p className="small" style={{ margin: '6px 0' }}><Badge tone="warning">Under security review</Badge> <span className="muted">{a.securityReviewReason}</span></p>}
+              {can('accounts.review') && <Button size="sm" variant="secondary" onClick={() => setReviewFor(a)}>{a.securityReview ? 'Clear security review' : 'Place under security review'}</Button>}
             </div>
           ))}
         </Card>
@@ -160,6 +164,8 @@ export function CustomerDetail() {
           {d.securityEvents.length ? <ul>{d.securityEvents.map((e) => <li key={e.id} className="kv-row"><span>{e.summary}<br /><span className="muted small">{relativeTime(e.created_at)}</span></span><Badge status={e.severity} /></li>)}</ul> : <EmptyState icon="shield" title="None" />}
         </Card>
       </div>
+      <ReasonDialog open={!!reviewFor} onClose={() => setReviewFor(null)} title={reviewFor?.securityReview ? 'Clear security review' : 'Place under security review'} confirmLabel={reviewFor?.securityReview ? 'Clear review' : 'Start review'} onSubmit={runReview}
+        description={reviewFor?.securityReview ? 'Clearing the review does not approve any waiting withdrawal; staff still decide each one.' : 'New withdrawal requests on this account go to review and cannot be approved until the review is cleared. Waiting requests move to "Under review". The customer is notified with a neutral message. Other accounts are not affected.'} />
       <ReasonDialog open={!!action} onClose={() => setAction(null)} title={action ? ACTIONS[action].label : ''} tone={action && ACTIONS[action].tone} confirmLabel={action ? ACTIONS[action].label : 'Confirm'} onSubmit={run}
         description={action === 'reject_account' ? 'The customer will be notified by email and the application closed.' : action === 'lock' ? 'Locking ends all sessions and blocks sign-in until reactivated.' : action === 'suspend' ? 'The customer can sign in but cannot transact while suspended.' : undefined} />
     </div>

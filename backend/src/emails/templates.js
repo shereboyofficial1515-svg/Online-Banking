@@ -112,12 +112,12 @@ const T = {
   withdrawal_received: (d) => ({
     subject: 'Withdrawal request received',
     heading: 'We received your withdrawal request',
-    body: `<p>${hi(d)}</p><p>Your request has been recorded and requires additional account review. <strong>No funds have been sent.</strong> Please contact EWB Bank Customer Support for assistance with your request.</p>${detailTable([['Amount', money(d.amount, d.currency)], ['Reference', d.reference], ['Status', d.statusLabel]])}`,
+    body: `<p>${hi(d)}</p><p>${esc(d.message)} <strong>No funds have been sent.</strong></p>${detailTable([['Amount', money(d.amount, d.currency)], ['Reference', d.reference], ['Status', d.statusLabel]])}`,
   }),
   withdrawal_blocked: (d) => ({
     subject: 'Withdrawal request on hold',
     heading: 'Your withdrawal request is on hold',
-    body: `<p>${hi(d)}</p><p>${esc(d.message)} <strong>No funds have been sent.</strong></p>${detailTable([['Amount', money(d.amount, d.currency)], ['Reference', d.reference], ['Status', d.statusLabel]])}${button(`${config.appUrl}/app/support`, 'Contact customer support')}`,
+    body: `<p>${hi(d)}</p><p>${esc(d.message)} <strong>No funds have been sent.</strong></p>${detailTable([['Amount', money(d.amount, d.currency)], ['Reference', d.reference], ['Status', d.statusLabel]])}${button(`${config.appUrl}/app/verification`, 'Continue verification')}`,
   }),
   withdrawal_update: (d) => ({
     subject: `Withdrawal request update: ${d.statusLabel}`,

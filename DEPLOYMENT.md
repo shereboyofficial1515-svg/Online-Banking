@@ -41,9 +41,9 @@ cd frontend && npm run dev          # SPA on http://localhost:5173 (proxies /api
 ```
 **Tests.**
 ```bash
-cd backend  && npm test             # 163 tests, embedded Postgres, never reads .env
+cd backend  && npm test             # 183 tests, embedded Postgres, never reads .env
 cd backend  && npm run test:pg      # same suites through the production `pg` driver (1-connection pool)
-cd frontend && npm test             # 76 tests
+cd frontend && npm test             # 83 tests
 cd frontend && npm run build        # production build + automatic secret scan of the bundle
 ```
 

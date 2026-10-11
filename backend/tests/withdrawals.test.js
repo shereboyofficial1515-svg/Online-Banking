@@ -20,7 +20,8 @@ describe('customer withdrawal requests', () => {
     const r = await c.post('/api/withdrawals', request(cust.accountId));
     assert.equal(r.status, 202, JSON.stringify(r.body));
     assert.equal(r.body.withdrawal.status, 'additional_verification_required');
-    assert.match(r.body.message, /additional account review/i);
+    assert.match(r.body.message, /awaiting security verification/i);
+    assert.doesNotMatch(r.body.message, /contact/i, 'a customer-care instruction is not shown when only verification is needed');
     assert.match(r.body.message, /No funds have been sent/i);
     assert.equal(await entryCount(cust.accountId), before, 'no ledger entries created');
     assert.equal((await L.balances(db, cust.accountId)).ledger, 10000);

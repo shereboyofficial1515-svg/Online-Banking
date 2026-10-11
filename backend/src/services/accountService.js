@@ -14,6 +14,7 @@ export const accountDto = (a, b) => ({
   currency: a.currency,
   status: a.status,
   createdAt: a.created_at,
+  securityReview: !!a.security_review_at, // boolean only; the staff reason is never sent to customers
   ...(b ? { balance: b.ledger, availableBalance: b.available, heldAmount: b.held } : {}),
 });
 

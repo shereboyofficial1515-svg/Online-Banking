@@ -106,3 +106,4 @@ export const updateStaff = h(async (req, res) => res.json({ staff: await admin.u
 // account closure requests (customer settings workflow)
 export const listClosures = h(async (req, res) => res.json(await settings.listClosureRequests()));
 export const decideClosure = h(async (req, res) => res.json({ closure: await settings.decideClosure(req.ctx, req.params.id, req.body) }));
+export const accountSecurityReview = h(async (req, res) => res.json(await withdrawals.setSecurityReview(req.ctx, req.params.id, req.body)));

@@ -105,6 +105,7 @@ describe('customer-facing content', () => {
 
   it('withdrawal copy still states that nothing was sent', () => {
     const money = files.find(([f]) => f.endsWith('Money.jsx'))[1];
-    expect(money).toMatch(/does not move funds/);
+    expect(money).toMatch(/does not itself move funds/);
+    expect(money).not.toMatch(/contact (EWB Bank )?Customer Support/i); // no blanket customer-care instruction
   });
 });

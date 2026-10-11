@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button, Field, Input, PasswordInput, Tabs } from '../../components/ui/Controls.jsx';
 import { Alert, Badge, Card, EmptyState, ErrorState, KeyValue, PageHeader, SkeletonCard, SkeletonRows } from '../../components/ui/Feedback.jsx';
 import Icon from '../../components/ui/Icon.jsx';
+import ProfileHeader from '../../components/ProfileHeader.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../lib/auth.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
@@ -18,8 +19,6 @@ export function Profile() {
   const [f, setF] = useState({ phone: user.phone || '', addressLine1: user.address.line1 || '', city: user.address.city || '', state: user.address.state || '', postalCode: user.address.postalCode || '', country: user.address.country || '' });
   const [fe, setFe] = useState({});
   const [busy, setBusy] = useState(false);
-  const [photoKey, setPhotoKey] = useState(0);
-  const file = useRef(null);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const phoneChanged = (f.phone || '') !== (user.phone || '');
 
@@ -28,23 +27,10 @@ export function Profile() {
     try { await api.patch('/api/users/me', phoneChanged ? { ...f, currentPassword: pw } : f); await reload(); setPw(''); toast.success('Profile updated.'); }
     catch (ex) { setFe(fieldErrors(ex)); toast.error(ex.message); } finally { setBusy(false); }
   };
-  const upload = async (e) => {
-    const picked = e.target.files?.[0]; e.target.value = '';
-    if (!picked) return;
-    const fd = new FormData(); fd.append('photo', picked);
-    try { await api.upload('/api/users/me/photo', fd); await reload(); setPhotoKey((k) => k + 1); toast.success('Profile photo updated.'); } catch (ex) { toast.error(ex.message); }
-  };
   return (
     <div className="stack" style={{ maxWidth: 820 }}>
       <PageHeader title="Profile" subtitle="Your personal details." />
-      <Card>
-        <div className="row" style={{ gap: 18 }}>
-          <span className="avatar" style={{ width: 72, height: 72, fontSize: '1.4rem' }}>{user.hasProfilePhoto ? <img key={photoKey} src={apiUrl(`/api/users/me/photo?v=${photoKey}`)} alt="" /> : initials(user)}</span>
-          <div className="grow"><h2>{user.firstName} {user.lastName}</h2><p className="muted" style={{ margin: 0 }}>{user.email}</p></div>
-          <input ref={file} className="file-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={upload} aria-label="Upload profile photo" />
-          <Button variant="secondary" icon="upload" onClick={() => file.current.click()}>Change photo</Button>
-        </div>
-      </Card>
+      <ProfileHeader />
       <Card title="Identity details" subtitle="To change your name or date of birth, contact customer support so we can verify the change. You can change your email address in Email settings.">
         <KeyValue items={[
           { label: 'Full name', value: `${user.firstName} ${user.lastName}` },
