@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const store = { upload: vi.fn(), reload: vi.fn(), updateUser: vi.fn(), user: { id: 'u1', firstName: 'Avery', lastName: 'Morgan', email: 'avery.morgan.with.a.very.long.address@example-company-name.test', createdAt: '2026-01-01T00:00:00Z', hasProfilePhoto: false } };
+vi.mock('../lib/PreferencesProvider.jsx', async () => { const i = await import('../lib/i18n.js'); return { usePrefs: () => ({ t: i.t, prefs: { language: 'en', theme: 'system' }, save: async () => {}, setTheme: () => {} }) }; });
 vi.mock('../lib/api.js', async (orig) => ({ ...(await orig()), api: { upload: (...a) => store.upload(...a), get: vi.fn(), post: vi.fn() } }));
 vi.mock('../lib/auth.jsx', () => ({ useAuth: () => ({ user: store.user, reload: store.reload, updateUser: store.updateUser }) }));
 

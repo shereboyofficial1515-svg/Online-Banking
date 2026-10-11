@@ -10,6 +10,8 @@ import { initials } from '../lib/format.js';
 import { useEnter } from '../lib/motion.js';
 import ThemeSwitcher from '../components/ThemeSwitcher.jsx';
 import { usePrefs } from '../lib/PreferencesProvider.jsx';
+import { Alert } from '../components/ui/Feedback.jsx';
+import { Button } from '../components/ui/Controls.jsx';
 import Avatar from '../components/Avatar.jsx';
 import LogoutDialog from '../components/LogoutDialog.jsx';
 import { DASHBOARD_NOTE } from '../lib/disclosures.js';
@@ -30,6 +32,7 @@ function NavList({ groups, onNavigate, badges }) {
 
 function UserMenu({ mode }) {
   const { user, logout } = useAuth();
+  const { t } = usePrefs();
   const [open, setOpen] = useState(false);
   const [confirmOut, setConfirmOut] = useState(false);
   const ref = useRef(null);
@@ -43,15 +46,16 @@ function UserMenu({ mode }) {
   }, [open]);
   return (
     <div className="menu-wrap" ref={ref}>
-      <button type="button" className="icon-btn" style={{ width: 44 }} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" onClick={() => setOpen((o) => !o)}>
+      <button type="button" className="icon-btn" style={{ width: 44 }} aria-haspopup="menu" aria-expanded={open} aria-label={t('menu.account')} onClick={() => setOpen((o) => !o)}>
         <Avatar />
       </button>
       {open && (
         <div className="menu" role="menu">
           <div className="menu-head"><strong>{user.firstName} {user.lastName}</strong><span>{user.email}</span></div>
-          {mode === 'customer' && <Link to="/app/settings/profile" role="menuitem" onClick={() => setOpen(false)}><Icon name="user" size={18} /> Profile</Link>}
-          <Link to={mode === 'customer' ? '/app/security' : '/admin/security-center'} role="menuitem" onClick={() => setOpen(false)}><Icon name="shield" size={18} /> Security</Link>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); setConfirmOut(true); }}><Icon name="logout" size={18} /> Log out</button>
+          {mode === 'customer' && <Link to="/app/settings/profile" role="menuitem" onClick={() => setOpen(false)}><Icon name="user" size={18} /> {t('menu.profile')}</Link>}
+          <Link to={mode === 'customer' ? '/app/security' : '/admin/security-center'} role="menuitem" onClick={() => setOpen(false)}><Icon name="shield" size={18} /> {t('menu.security')}</Link>
+          {mode === 'customer' && <Link to="/app/settings/display" role="menuitem" onClick={() => setOpen(false)}><Icon name="globe" size={18} /> {t('menu.language')}</Link>}
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); setConfirmOut(true); }}><Icon name="logout" size={18} /> {t('menu.logout')}</button>
         </div>
       )}
       <LogoutDialog open={confirmOut} onClose={() => setConfirmOut(false)} onConfirm={async () => { await logout(); setConfirmOut(false); nav('/login', { replace: true }); }} />
@@ -65,7 +69,7 @@ function UserMenu({ mode }) {
  */
 export default function Shell({ mode, groups, bottomItems, footerNote }) {
   const { user } = useAuth();
-  const { version } = usePrefs();
+  const { version, t } = usePrefs();
   const loc = useLocation();
   const [drawer, setDrawer] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -110,6 +114,9 @@ export default function Shell({ mode, groups, bottomItems, footerNote }) {
           <UserMenu mode={mode} />
         </header>
         <main id="main" ref={main} tabIndex={-1} className="content" style={{ outline: 'none' }}>
+          {mode === 'customer' && user.phoneRequired && loc.pathname !== '/app/settings/profile' && (
+            <Alert tone="info" title={t('banner.phone.title')} action={<Button size="sm" to="/app/settings/profile">{t('banner.phone.action')}</Button>}>{t('banner.phone.text')}</Alert>
+          )}
           <ErrorBoundary resetKey={loc.pathname}><Outlet key={version} /></ErrorBoundary>
           {mode === 'customer' && (
             <p className="disclosure">{DASHBOARD_NOTE} <Link to="/terms">Terms of Service</Link></p>

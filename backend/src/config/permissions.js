@@ -14,7 +14,7 @@ const ALL = [
   'dashboard.read', 'customers.read', 'customers.status', 'accounts.review', 'sessions.reset', 'verification.review',
   'withdrawals.read', 'withdrawals.note', 'withdrawals.review', 'withdrawals.decide', 'ledger.read', 'ledger.adjust', 'ledger.reverse',
   'support.read', 'support.manage', 'security.read', 'security.manage', 'audit.read', 'staff.manage',
-  'site.manage', 'legal.edit', 'legal.publish',
+  'site.manage', 'legal.edit', 'legal.publish', 'features.manage',
 ];
 
 export const ROLE_PERMISSIONS = {

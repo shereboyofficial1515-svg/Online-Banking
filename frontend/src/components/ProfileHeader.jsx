@@ -6,6 +6,7 @@ import { useToast } from './ui/Toast.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { api, apiUrl } from '../lib/api.js';
 import { dateTime, initials } from '../lib/format.js';
+import { usePrefs } from '../lib/PreferencesProvider.jsx';
 
 const TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -27,6 +28,7 @@ export function checkPhoto(file) {
 export default function ProfileHeader() {
   const { user, updateUser } = useAuth();
   const toast = useToast();
+  const { t } = usePrefs();
   const input = useRef(null);
   const [picked, setPicked] = useState(null); // { file, url }
   const [error, setError] = useState(null);
@@ -67,13 +69,13 @@ export default function ProfileHeader() {
         <div className="profile-names">
           <h2>{user.firstName} {user.lastName}</h2>
           <p className="profile-email">{user.email}</p>
-          <p className="muted small">Member since {dateTime(user.createdAt)}</p>
+          <p className="muted small">{t('profile.since', { date: dateTime(user.createdAt) })}</p>
         </div>
       </div>
       <div className="profile-actions">
         <input ref={input} className="file-input" type="file" accept="image/png,image/jpeg,image/webp" onChange={choose} aria-label="Choose a profile photo" tabIndex={-1} />
-        <Button variant="secondary" icon="camera" onClick={() => input.current.click()}>{user.hasProfilePhoto ? 'Change photo' : 'Add photo'}</Button>
-        <p className="muted small">JPEG, PNG or WebP, up to 5 MB</p>
+        <Button variant="secondary" icon="camera" onClick={() => input.current.click()}>{user.hasProfilePhoto ? t('profile.change') : t('profile.add')}</Button>
+        <p className="muted small">{t('profile.hint')}</p>
       </div>
       {error && !picked && <div className="profile-error"><Alert tone="danger">{error}</Alert></div>}
 

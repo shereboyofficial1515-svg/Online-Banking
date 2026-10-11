@@ -1,18 +1,22 @@
+import { localeFor } from './i18n.js';
 // Presentation formatting. Stored values never change: timestamps are UTC instants and money is integer minor units
 // in the account's own currency. These helpers only decide how they are displayed, following the customer's regional
 // preferences (timezone, date/time/number format, currency display) configured via configureFormat().
-const state = { timeZone: undefined, dateFormat: 'system', timeFormat: 'system', numberLocale: undefined, currencyDisplay: 'symbol' };
+const state = { timeZone: undefined, dateFormat: 'system', timeFormat: 'system', numberLocale: undefined, currencyDisplay: 'symbol', languageLocale: undefined };
 
 export function configureFormat(p = {}) {
   state.timeZone = p.timezone || undefined; // undefined = the browser's timezone
   state.dateFormat = p.dateFormat || 'system';
   state.timeFormat = p.timeFormat || 'system';
-  state.numberLocale = p.numberFormat && p.numberFormat !== 'system' ? p.numberFormat : undefined;
+  // "Match my device" now means "follow the chosen language": French shows 1 234,56 and 31/10/2026, Hindi uses lakh grouping, etc.
+  // Only the display changes; stored amounts (integer minor units) and each account's currency are never touched.
+  state.languageLocale = p.language && p.language !== 'en' ? localeFor(p.language) : undefined;
+  state.numberLocale = p.numberFormat && p.numberFormat !== 'system' ? p.numberFormat : state.languageLocale;
   state.currencyDisplay = p.currencyDisplay === 'code' ? 'code' : 'symbol';
 }
 export const getFormat = () => ({ ...state });
 
-const dateLocale = () => ({ mdy: 'en-US', dmy: 'en-GB', ymd: 'en-CA' }[state.dateFormat]); // undefined => browser default
+const dateLocale = () => ({ mdy: 'en-US', dmy: 'en-GB', ymd: 'en-CA' }[state.dateFormat]) ?? state.languageLocale; // undefined => browser default
 const hour12 = () => (state.timeFormat === '12h' ? true : state.timeFormat === '24h' ? false : undefined);
 
 export const money = (minor, currency = 'USD') =>

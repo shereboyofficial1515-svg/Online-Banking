@@ -19,6 +19,7 @@ import { Button, Field, Input, PasswordInput } from '../components/ui/Controls.j
 import { Alert } from '../components/ui/Feedback.jsx';
 import { useAuth } from './auth.jsx';
 import { api, fieldErrors } from './api.js';
+import { usePrefs } from './PreferencesProvider.jsx';
 
 const KEY = 'ewb.hiddenAt';
 const HEARTBEAT_MS = 20_000;
@@ -101,6 +102,7 @@ export default function SecurityLock({ children }) {
 
 function LockScreen({ info, onUnlocked }) {
   const { logout, user } = useAuth();
+  const { t } = usePrefs();
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [fe, setFe] = useState({});
@@ -135,16 +137,16 @@ function LockScreen({ info, onUnlocked }) {
       <div className="lock-card">
         <Logo to="/" compact={false} />
         <span className="lock-icon" aria-hidden="true"><Icon name="lock" size={26} /></span>
-        <h1 id="lock-title">Session locked</h1>
-        <p id="lock-desc" className="muted">{name ? `Welcome back, ${name}. ` : ''}For your security, please confirm it’s you to continue. Your pages are exactly as you left them.</p>
+        <h1 id="lock-title">{t('lock.title')}</h1>
+        <p id="lock-desc" className="muted">{name ? `${t('lock.welcome', { name })} ` : ''}{t('lock.desc')}</p>
         {err && <Alert tone="danger">{err}</Alert>}
         <form onSubmit={submit} noValidate>
-          <Field label="Password" error={fe.password} required>{(p) => <PasswordInput {...p} autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
-          {mfa && <Field label="Authenticator code" error={fe.code} hint="The 6-digit code from your authenticator app." required>{(p) => <Input {...p} inputMode="numeric" autoComplete="one-time-code" maxLength={12} value={code} onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))} />}</Field>}
-          <Button type="submit" size="lg" loading={busy === 'password'} disabled={!password || (mfa && !code) || !!busy} style={{ width: '100%' }}>Unlock</Button>
+          <Field label={t('auth.password')} error={fe.password} required>{(p) => <PasswordInput {...p} autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />}</Field>
+          {mfa && <Field label={t('lock.code')} error={fe.code} hint={t('lock.codeHint')} required>{(p) => <Input {...p} inputMode="numeric" autoComplete="one-time-code" maxLength={12} value={code} onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))} />}</Field>}
+          <Button type="submit" size="lg" loading={busy === 'password'} disabled={!password || (mfa && !code) || !!busy} style={{ width: '100%' }}>{t('lock.unlock')}</Button>
         </form>
-        {passkey && <Button variant="secondary" icon="fingerprint" onClick={withPasskey} loading={busy === 'passkey'} disabled={!!busy} style={{ width: '100%' }}>Use a passkey</Button>}
-        <button type="button" className="link-btn lock-leave" onClick={leave} disabled={!!busy}>Sign out instead</button>
+        {passkey && <Button variant="secondary" icon="fingerprint" onClick={withPasskey} loading={busy === 'passkey'} disabled={!!busy} style={{ width: '100%' }}>{t('lock.passkey')}</Button>}
+        <button type="button" className="link-btn lock-leave" onClick={leave} disabled={!!busy}>{t('lock.signout')}</button>
       </div>
     </div>
   );

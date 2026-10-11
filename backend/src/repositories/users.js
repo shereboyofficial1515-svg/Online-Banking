@@ -2,7 +2,7 @@
 // written by service code that has already performed its own authorization; request bodies are never
 // spread into these queries.
 const UPDATABLE = new Set([
-  'first_name', 'last_name', 'phone', 'phone_verified_at', 'date_of_birth', 'address_line1', 'city', 'state', 'postal_code',
+  'first_name', 'last_name', 'phone', 'phone_e164', 'phone_verified_at', 'date_of_birth', 'address_line1', 'city', 'state', 'postal_code',
   'country', 'role', 'status', 'email_verified_at', 'verification_status', 'failed_login_count', 'locked_until',
   'password_hash', 'password_changed_at', 'mfa_enabled', 'mfa_secret_enc', 'mfa_pending_secret_enc', 'profile_photo_path',
   'last_login_at', 'username', 'mfa_last_step',
@@ -24,9 +24,9 @@ export async function findByIdentifier(q, identifier) {
 }
 export async function create(q, u) {
   const { rows } = await q.query(
-    `INSERT INTO users (email, username, password_hash, first_name, last_name, phone, date_of_birth, address_line1, city, state, postal_code, country, role, status, email_verified_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-    [u.email, u.username ?? null, u.passwordHash, u.firstName, u.lastName, u.phone ?? null, u.dateOfBirth ?? null, u.addressLine1 ?? null,
+    `INSERT INTO users (email, username, password_hash, first_name, last_name, phone, phone_e164, date_of_birth, address_line1, city, state, postal_code, country, role, status, email_verified_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+    [u.email, u.username ?? null, u.passwordHash, u.firstName, u.lastName, u.phone ?? null, u.phoneE164 ?? null, u.dateOfBirth ?? null, u.addressLine1 ?? null,
       u.city ?? null, u.state ?? null, u.postalCode ?? null, u.country ?? null, u.role ?? 'customer', u.status ?? 'active', u.emailVerifiedAt ?? null],
   );
   return rows[0];
@@ -49,8 +49,10 @@ export function toPublic(u) {
     username: u.username,
     firstName: u.first_name,
     lastName: u.last_name,
-    phone: u.phone,
+    phone: u.phone_e164 || u.phone,
     phoneVerified: !!u.phone_verified_at,
+    // true for customers who registered before phone numbers were mandatory: the app asks them to add a valid one
+    phoneRequired: u.role === 'customer' && !u.phone_e164,
     dateOfBirth: u.date_of_birth ? String(u.date_of_birth).slice(0, 10) : null,
     address: { line1: u.address_line1, city: u.city, state: u.state, postalCode: u.postal_code, country: u.country },
     role: u.role,

@@ -14,6 +14,7 @@ import { hashPassword, verifyPassword, passwordProblems } from '../utils/passwor
 import { randomInt } from 'node:crypto';
 import { hmacSha256Hex, randomToken, safeEqual, sha256 } from '../utils/crypto.js';
 import { STAFF_ROLES } from '../config/permissions.js';
+import { normalizePhone, matchesCountry } from '../utils/phone.js';
 import { AppError, badRequest, forbidden, tooMany, unauthorized, validationError } from '../utils/errors.js';
 
 const GENERIC_LOGIN_ERROR = 'The email/username or password is incorrect.';
@@ -72,6 +73,8 @@ async function issuedRecently(q, userId, purpose, seconds = 60) {
 }
 
 // ───────── registration ─────────
+const PHONE_TAKEN = 'This phone number cannot be used for a new profile. Check the number, or sign in if you already have a profile.';
+
 export async function register(ctx, input) {
   const problems = passwordProblems(input.password, { email: input.email });
   if (problems.length) throw validationError({ password: [`Password needs ${problems.join(', ')}.`] });
@@ -87,15 +90,28 @@ export async function register(ctx, input) {
   if (input.username && (await db.query('SELECT 1 FROM users WHERE lower(username)=lower($1)', [input.username])).rows[0]) {
     throw validationError({ username: ['That username is already taken.'] });
   }
+  // `input.phone` was already validated and normalised to E.164 by the request schema; check it matches the chosen country and is free.
+  const parsed = normalizePhone(input.phone);
+  if (!parsed) throw validationError({ phone: ['Enter a valid phone number.'] });
+  if (input.phoneCountry && !matchesCountry(parsed, input.phoneCountry)) throw validationError({ phone: ['The phone number does not match the selected country.'] });
+  if ((await db.query('SELECT 1 FROM users WHERE phone_e164=$1', [parsed.e164])).rows[0]) throw validationError({ phone: [PHONE_TAKEN] });
   const passwordHash = await hashPassword(input.password);
-  const { user, token } = await db.tx(async (t) => {
-    const user = await users.create(t, { ...input, passwordHash, role: 'customer', status: 'active' });
+  let created;
+  try {
+    created = await db.tx(async (t) => {
+    const user = await users.create(t, { ...input, phone: parsed.e164, phoneE164: parsed.e164, passwordHash, role: 'customer', status: 'active' });
     await accountService.openDefaultAccount(t, user.id);
     await legal.recordAcceptance(t, ctx, user.id); // which version of the Terms and Privacy Policy was agreed to
     const code = await issueEmailCode(t, user.id);
     await audit.record(t, ctx, { actorId: user.id, actorRole: 'customer', action: 'user.register', targetType: 'user', targetId: user.id });
     return { user, token: code };
-  });
+    });
+  } catch (e) {
+    // Two sign-ups racing for the same number: the unique index lets exactly one through.
+    if (e?.code === '23505' && /phone_e164/.test(`${e.constraint || ''} ${e.message || ''}`)) throw validationError({ phone: [PHONE_TAKEN] });
+    throw e;
+  }
+  const { user, token } = created;
   await sendVerificationCode(user, token);
   return { created: true, userId: user.id };
 }

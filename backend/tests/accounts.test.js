@@ -47,7 +47,7 @@ describe('account number standard (605 + 9 digits)', () => {
     const a = await makeCustomer();
     assert.ok(isValidAccountNumber(a.accountNumber));
     const c = client(app); await login(c, a.email);
-    const extra = await c.post('/api/accounts', { type: 'savings' });
+    const extra = await c.post('/api/accounts', { type: 'checking' });
     assert.equal(extra.status, 201);
     assert.ok(isValidAccountNumber(extra.body.account.accountNumber));
     const list = await c.get('/api/accounts');
@@ -57,7 +57,7 @@ describe('account number standard (605 + 9 digits)', () => {
   test('the client cannot choose an account number', async () => {
     const a = await makeCustomer();
     const c = client(app); await login(c, a.email);
-    const r = await c.post('/api/accounts', { type: 'savings', accountNumber: '605999999999', account_number: '605888888888' });
+    const r = await c.post('/api/accounts', { type: 'checking', accountNumber: '605999999999', account_number: '605888888888' });
     assert.equal(r.status, 201);
     assert.notEqual(r.body.account.accountNumber, '605999999999');
     assert.notEqual(r.body.account.accountNumber, '605888888888');

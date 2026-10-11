@@ -45,10 +45,21 @@ describe('settings hub', () => {
     }
   });
 
-  it('offers only languages that actually exist', async () => {
+  it('offers a searchable language selector listing only languages that have a catalog', async () => {
     mount('/app/settings/display');
-    const select = await screen.findByLabelText('Language');
-    expect([...select.querySelectorAll('option')].map((o) => o.value)).toEqual(['en']);
+    const trigger = await screen.findByRole('button', { name: 'Language' });
+    fireEvent.click(trigger);
+    const search = await screen.findByRole('combobox');
+    const shown = () => screen.getAllByRole('option').map((o) => o.textContent);
+    expect(shown().length).toBeGreaterThanOrEqual(7);
+    fireEvent.change(search, { target: { value: 'fran' } });
+    expect(shown()).toHaveLength(1);
+    expect(shown()[0]).toMatch(/Français/);
+    fireEvent.change(search, { target: { value: 'العربية' } });
+    expect(shown()[0]).toMatch(/Arabic/);
+    fireEvent.change(search, { target: { value: 'zzzz' } });
+    expect(screen.queryAllByRole('option')).toHaveLength(0);
+    expect(screen.getByText('No languages found')).toBeInTheDocument();
   });
 
   it('saves display settings through the backend and says so only after it confirms', async () => {

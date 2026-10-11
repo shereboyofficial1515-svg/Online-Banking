@@ -6,18 +6,28 @@ import * as users from '../repositories/users.js';
 import * as audit from './auditService.js';
 import { randomToken } from '../utils/crypto.js';
 import { verifyPassword } from '../utils/passwords.js';
+import { normalizePhone, matchesCountry } from '../utils/phone.js';
 import { badRequest, notFound, validationError } from '../utils/errors.js';
 
 /** Customers may change contact details and address. Name, email and date of birth are identity data and go through support. */
 export async function updateProfile(ctx, user, input) {
   const fields = {};
-  const phoneChanging = input.phone !== undefined && (input.phone || null) !== (user.phone || null);
+  const phoneChanging = input.phone !== undefined && input.phone !== (user.phone_e164 || null);
   if (phoneChanging && !(input.currentPassword && await verifyPassword(user.password_hash, input.currentPassword))) {
     throw validationError({ currentPassword: ['Enter your current password to change your phone number.'] }); // the phone number is a recovery/contact channel
   }
-  const map = { phone: 'phone', addressLine1: 'address_line1', city: 'city', state: 'state', postalCode: 'postal_code', country: 'country' };
+  const map = { addressLine1: 'address_line1', city: 'city', state: 'state', postalCode: 'postal_code', country: 'country' };
   for (const [k, col] of Object.entries(map)) if (input[k] !== undefined) fields[col] = input[k] || null;
-  if (fields.phone !== undefined && fields.phone !== user.phone) fields.phone_verified_at = null; // a new number is unverified
+  if (input.phone !== undefined) {
+    // already validated and converted to E.164 by the request schema; a profile always keeps a phone number once it has one
+    const parsed = normalizePhone(input.phone);
+    if (!parsed) throw validationError({ phone: ['Enter a valid phone number.'] });
+    if (input.phoneCountry && !matchesCountry(parsed, input.phoneCountry)) throw validationError({ phone: ['The phone number does not match the selected country.'] });
+    const clash = await getDb().query('SELECT 1 FROM users WHERE phone_e164=$1 AND id<>$2', [parsed.e164, user.id]);
+    if (clash.rows[0]) throw validationError({ phone: ['This phone number cannot be used. Check the number and try again.'] });
+    fields.phone = parsed.e164; fields.phone_e164 = parsed.e164;
+    if (parsed.e164 !== user.phone_e164) fields.phone_verified_at = null; // a new number is unverified
+  }
   const db = getDb();
   const updated = await db.tx(async (t) => {
     const u = await users.update(t, user.id, fields);

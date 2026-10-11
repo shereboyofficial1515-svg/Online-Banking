@@ -9,6 +9,7 @@ import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { SkeletonCard, ErrorState } from '../components/ui/Feedback.jsx';
 import ThemeSwitcher from '../components/ThemeSwitcher.jsx';
+import LanguageSelect from '../components/LanguageSelect.jsx';
 import { usePrefs } from '../lib/PreferencesProvider.jsx';
 import { useSite } from '../lib/site.jsx';
 
@@ -51,6 +52,7 @@ const adminItems = [
   { to: '/admin/audit', label: 'Audit log', icon: 'clipboard', perm: 'audit.read' },
   { to: '/admin/staff', label: 'Staff', icon: 'key', perm: 'staff.manage' },
   { to: '/admin/website', label: 'Website', icon: 'globe', perm: 'site.manage' },
+  { to: '/admin/features', label: 'Features', icon: 'check-circle', perm: 'features.manage' },
   { to: '/admin/legal', label: 'Legal documents', icon: 'file', perm: 'legal.edit' },
   { to: '/admin/security-center', label: 'My security', icon: 'lock' },
 ];
@@ -82,11 +84,12 @@ export function AdminShell() {
 }
 
 // ───────── public site ─────────
-const pubLinks = [['/#services', 'Services'], ['/#security', 'Security'], ['/#digital', 'Digital banking'], ['/#faq', 'FAQ'], ['/#contact', 'Contact']];
+const pubLinks = (t) => [['/#services', t('pub.services')], ['/#security', t('pub.security')], ['/#digital', t('pub.digital')], ['/#faq', t('pub.faq')], ['/#contact', t('pub.contact')]];
 
 export function PublicLayout() {
   const { user } = useAuth();
   const { config } = useSite();
+  const { t } = usePrefs();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -94,20 +97,21 @@ export function PublicLayout() {
       <header className="pub-header">
         <div className="pub-nav">
           <Logo />
-          <nav className="pub-links" aria-label="Main">{pubLinks.map(([to, l]) => <a key={to} href={to}>{l}</a>)}</nav>
+          <nav className="pub-links" aria-label="Main">{pubLinks(t).map(([to, l]) => <a key={to} href={to}>{l}</a>)}</nav>
           <div className="pub-cta">
+            <LanguageSelect compact />
             <ThemeSwitcher />
-            {user ? <Button to={user.isStaff ? '/admin' : '/app'} size="sm" className="hide-xs">Open dashboard</Button> : (<><Button to="/login" variant="ghost" size="sm" className="hide-mobile">Sign in</Button><Button to="/register" size="sm" className="hide-xs">Open an account</Button></>)}
-            <button type="button" className="icon-btn pub-burger" onClick={() => setOpen(true)} aria-label="Open menu" aria-haspopup="dialog"><Icon name="menu" /></button>
+            {user ? <Button to={user.isStaff ? '/admin' : '/app'} size="sm" className="hide-xs">{t('pub.dashboard')}</Button> : (<><Button to="/login" variant="ghost" size="sm" className="hide-mobile">{t('pub.signin')}</Button><Button to="/register" size="sm" className="hide-xs">{t('pub.openAccount')}</Button></>)}
+            <button type="button" className="icon-btn pub-burger" onClick={() => setOpen(true)} aria-label={t('pub.menu')} aria-haspopup="dialog"><Icon name="menu" /></button>
           </div>
         </div>
       </header>
-      <Drawer open={open} onClose={() => setOpen(false)} title="Menu">
+      <Drawer open={open} onClose={() => setOpen(false)} title={t('pub.menu')}>
         <nav aria-label="Mobile" onClick={() => setOpen(false)}>
-          {pubLinks.map(([to, l]) => <a key={to} href={to} className="nav-item">{l}</a>)}
-          {user ? <Link to={user.isStaff ? '/admin' : '/app'} className="nav-item">Open dashboard</Link> : (<><Link to="/login" className="nav-item">Sign in</Link><Link to="/register" className="nav-item">Open an account</Link></>)}
+          {pubLinks(t).map(([to, l]) => <a key={to} href={to} className="nav-item">{l}</a>)}
+          {user ? <Link to={user.isStaff ? '/admin' : '/app'} className="nav-item">{t('pub.dashboard')}</Link> : (<><Link to="/login" className="nav-item">{t('pub.signin')}</Link><Link to="/register" className="nav-item">{t('pub.openAccount')}</Link></>)}
           <Link to="/security-info" className="nav-item">Security information</Link>
-          <Link to="/about" className="nav-item">About us</Link>
+          <Link to="/about" className="nav-item">{t('pub.about')}</Link>
           <Link to="/contact" className="nav-item">Contact</Link>
           <Link to="/accessibility" className="nav-item">Accessibility</Link>
         </nav>
@@ -135,6 +139,7 @@ export function PublicLayout() {
 }
 
 export function AuthLayout({ children, wide, title, brandPoints = true }) {
+  const { t } = usePrefs();
   return (
     <div className="auth">
       <aside className="auth-brand" aria-hidden={false}>
@@ -153,7 +158,7 @@ export function AuthLayout({ children, wide, title, brandPoints = true }) {
         <p className="small">© {new Date().getFullYear()} EWB Bank. All rights reserved.</p>
       </aside>
       <main id="main" className="auth-panel">
-        <div className={`auth-top ${wide ? 'wide' : ''}`}><span className="hide-desktop"><Logo /></span><span className="row" style={{ gap: 14 }}><ThemeSwitcher /><Link to="/" className="small">← Back to website</Link></span></div>
+        <div className={`auth-top ${wide ? 'wide' : ''}`}><span className="hide-desktop"><Logo /></span><span className="row" style={{ gap: 14 }}><LanguageSelect compact /><ThemeSwitcher /><Link to="/" className="small">{t('pub.back')}</Link></span></div>
         <div className={`auth-card ${wide ? 'wide' : ''}`}>{title && <h1>{title}</h1>}{children}</div>
       </main>
     </div>

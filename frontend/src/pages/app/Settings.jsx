@@ -7,13 +7,13 @@ import { Modal } from '../../components/ui/Overlay.jsx';
 import Icon from '../../components/ui/Icon.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import Security from './Security.jsx';
+import LanguageSelect from '../../components/LanguageSelect.jsx';
 import { Profile } from './Account.jsx';
 import { useAuth } from '../../lib/auth.jsx';
 import { useSite } from '../../lib/site.jsx';
 import { usePrefs } from '../../lib/PreferencesProvider.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
 import { api, fieldErrors } from '../../lib/api.js';
-import { LANGUAGES } from '../../lib/i18n.js';
 import { browserTimezone, timezoneOptions } from '../../lib/prefs.js';
 import { dateTime, titleCase } from '../../lib/format.js';
 
@@ -137,7 +137,7 @@ function Choices({ legend, name, value, onChange, options }) {
 export function DisplaySettings() {
   const { t } = usePrefs();
   useDocumentTitle(t('settings.display'));
-  const f = usePrefDraft(['theme', 'language']);
+  const f = usePrefDraft(['theme']);
   return (
     <div className="stack">
       <PageHeader title={t('settings.display')} subtitle={t('settings.display.desc')} />
@@ -147,7 +147,8 @@ export function DisplaySettings() {
             ['light', t('display.theme.light'), t('display.theme.light.desc')], ['dark', t('display.theme.dark'), t('display.theme.dark.desc')], ['system', t('display.theme.system'), t('display.theme.system.desc')]]} />
         </Card>
         <Card title={t('display.language')}>
-          <Field label={t('display.language')} hint={t('display.language.note')}>{(a) => <Select {...a} value={f.draft.language} onChange={(e) => f.set('language', e.target.value)}>{LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}</Select>}</Field>
+          <Field label={t('display.language')} hint={t('display.language.note')}>{(a) => <LanguageSelect id={a.id} />}</Field>
+          <p className="muted small">{t('lang.beta')}</p>
         </Card>
         <SaveBar form={f} />
       </form>

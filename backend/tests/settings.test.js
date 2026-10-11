@@ -57,11 +57,11 @@ describe('email change', () => {
 
 describe('phone number change requires re-authentication', () => {
   test('wrong or missing password is refused; correct password marks the new number unverified', async () => {
-    const { cust, c } = await signedIn({ over: { phone: '+1 555 010 0100' } });
-    assert.equal((await c.patch('/api/users/me', { phone: '+1 555 010 0111' })).status, 422);
-    assert.equal((await c.patch('/api/users/me', { phone: '+1 555 010 0111', currentPassword: 'Nope-nope-1!' })).status, 422);
+    const { cust, c } = await signedIn({ over: { phone: '+2348031230100', phoneE164: '+2348031230100' } });
+    assert.equal((await c.patch('/api/users/me', { phone: '+2348031230111' })).status, 422);
+    assert.equal((await c.patch('/api/users/me', { phone: '+2348031230111', currentPassword: 'Nope-nope-1!' })).status, 422);
     assert.equal((await c.patch('/api/users/me', { city: 'Austin' })).status, 200, 'other fields need no password');
-    const ok = await c.patch('/api/users/me', { phone: '+1 555 010 0111', currentPassword: PASSWORD });
+    const ok = await c.patch('/api/users/me', { phone: '+2348031230111', currentPassword: PASSWORD });
     assert.equal(ok.status, 200, JSON.stringify(ok.body));
     assert.equal(ok.body.user.phoneVerified, false);
   });
