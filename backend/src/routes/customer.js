@@ -16,12 +16,22 @@ users.get('/me', c.getProfile);
 users.patch('/me', validate(v.profileSchema), c.updateProfile);
 users.post('/me/photo', uploadLimiter, uploadOne('photo'), c.uploadPhoto);
 users.get('/me/photo', c.getPhoto);
+users.get('/me/preferences', c.getDisplayPreferences);
+users.get('/me/legal-acceptances', c.listLegalAcceptances);
+users.post('/me/email-change', sensitiveLimiter, validate(v.emailChangeRequestSchema), c.requestEmailChange);
+users.post('/me/email-change/confirm', sensitiveLimiter, validate(v.emailChangeConfirmSchema), c.confirmEmailChange);
+users.post('/me/feedback', sensitiveLimiter, validate(v.feedbackSchema), c.sendFeedback);
+users.put('/me/preferences', validate(v.displayPreferencesSchema), c.saveDisplayPreferences);
 
 export const accounts = mk();
 accounts.use(guard);
 accounts.get('/', c.listAccounts);
 accounts.post('/', sensitiveLimiter, validate(v.openAccountSchema), c.openAccount);
 accounts.get('/:id', validate(v.idParam, 'params'), c.getAccount);
+accounts.patch('/:id', validate(v.idParam, 'params'), validate(v.accountRenameSchema), c.renameAccount);
+accounts.get('/:id/closure', validate(v.idParam, 'params'), c.getClosure);
+accounts.post('/:id/closure', sensitiveLimiter, validate(v.idParam, 'params'), validate(v.closureRequestSchema), c.requestClosure);
+accounts.delete('/:id/closure', sensitiveLimiter, validate(v.idParam, 'params'), c.cancelClosure);
 accounts.get('/:id/summary', validate(v.idParam, 'params'), c.accountSummary);
 
 export const transactions = mk();

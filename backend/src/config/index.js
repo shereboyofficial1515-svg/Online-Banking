@@ -53,6 +53,7 @@ const config = {
     bucketProfile: process.env.SUPABASE_BUCKET_PROFILE || 'profile-photos',
     bucketKyc: process.env.SUPABASE_BUCKET_KYC || 'kyc-documents',
     bucketSupport: process.env.SUPABASE_BUCKET_SUPPORT || 'support-attachments',
+    bucketSite: process.env.SUPABASE_BUCKET_SITE || 'site-assets',
   },
 
   auth: {

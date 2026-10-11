@@ -56,7 +56,7 @@ export function AdminVerificationDetail() {
             <figure key={d.id} style={{ margin: 0 }}>
               <figcaption className="muted small" style={{ marginBottom: 6 }}><strong>{titleCase(d.kind)}</strong> · {Math.round(d.size / 1024)} KB · {dateTime(d.uploadedAt)}</figcaption>
               {d.mime === 'application/pdf' ? <a className="btn btn-secondary btn-sm" href={apiUrl(`/api/admin/verification/documents/${d.id}`)} target="_blank" rel="noreferrer noopener">Open PDF</a>
-                : <img src={apiUrl(`/api/admin/verification/documents/${d.id}`)} alt={`${titleCase(d.kind)} submitted by ${v.customer}`} style={{ borderRadius: 12, border: '1px solid var(--line)', maxHeight: 360, width: '100%', objectFit: 'contain', background: 'var(--navy-50)' }} />}
+                : <img src={apiUrl(`/api/admin/verification/documents/${d.id}`)} alt={`${titleCase(d.kind)} submitted by ${v.customer}`} style={{ borderRadius: 12, border: '1px solid var(--border)', maxHeight: 360, width: '100%', objectFit: 'contain', background: 'var(--surface-2)' }} />}
             </figure>))}</div>
         ) : <EmptyState icon="file" title="No documents">{v.provider === 'manual' ? 'The customer has not uploaded any documents yet.' : 'This verification is handled by an external provider.'}</EmptyState>}
       </Card>

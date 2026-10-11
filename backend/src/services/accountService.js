@@ -14,7 +14,7 @@ export const accountDto = (a, b) => ({
   currency: a.currency,
   status: a.status,
   createdAt: a.created_at,
-  ...(b ? { ledgerBalance: b.ledger, availableBalance: b.available, heldAmount: b.held } : {}),
+  ...(b ? { balance: b.ledger, availableBalance: b.available, heldAmount: b.held } : {}),
 });
 
 /** Create the first checking account during registration (pending compliance review). */

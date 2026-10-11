@@ -8,6 +8,8 @@ import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { initials } from '../lib/format.js';
 import { useEnter } from '../lib/motion.js';
+import ThemeSwitcher from '../components/ThemeSwitcher.jsx';
+import { usePrefs } from '../lib/PreferencesProvider.jsx';
 import { DASHBOARD_NOTE } from '../lib/disclosures.js';
 
 function NavList({ groups, onNavigate, badges }) {
@@ -44,7 +46,7 @@ function UserMenu({ mode }) {
       {open && (
         <div className="menu" role="menu">
           <div className="menu-head"><strong>{user.firstName} {user.lastName}</strong><span>{user.email}</span></div>
-          {mode === 'customer' && <Link to="/app/profile" role="menuitem" onClick={() => setOpen(false)}><Icon name="user" size={18} /> Profile</Link>}
+          {mode === 'customer' && <Link to="/app/settings/profile" role="menuitem" onClick={() => setOpen(false)}><Icon name="user" size={18} /> Profile</Link>}
           <Link to={mode === 'customer' ? '/app/security' : '/admin/security-center'} role="menuitem" onClick={() => setOpen(false)}><Icon name="shield" size={18} /> Security</Link>
           <button type="button" role="menuitem" onClick={async () => { await logout(); nav('/login'); }}><Icon name="logout" size={18} /> Sign out</button>
         </div>
@@ -59,6 +61,7 @@ function UserMenu({ mode }) {
  */
 export default function Shell({ mode, groups, bottomItems, footerNote }) {
   const { user } = useAuth();
+  const { version } = usePrefs();
   const loc = useLocation();
   const [drawer, setDrawer] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -94,6 +97,7 @@ export default function Shell({ mode, groups, bottomItems, footerNote }) {
           <Logo to={mode === 'customer' ? '/app' : '/admin'} compact />
           <span className="topbar-title">{current?.label}</span>
           <span className="topbar-spacer" />
+          <ThemeSwitcher />
           {mode === 'customer' && (
             <Link to="/app/notifications" className="icon-btn bell" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}>
               <Icon name="bell" />{unread > 0 && <span className="bell-dot" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}
@@ -102,7 +106,7 @@ export default function Shell({ mode, groups, bottomItems, footerNote }) {
           <UserMenu mode={mode} />
         </header>
         <main id="main" ref={main} tabIndex={-1} className="content" style={{ outline: 'none' }}>
-          <ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary>
+          <ErrorBoundary resetKey={loc.pathname}><Outlet key={version} /></ErrorBoundary>
           {mode === 'customer' && (
             <p className="disclosure">{DASHBOARD_NOTE} <Link to="/terms">Important information</Link></p>
           )}

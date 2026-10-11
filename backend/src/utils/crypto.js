@@ -18,10 +18,13 @@ export function randomCode(len) {
   return out;
 }
 export const newReference = (prefix = 'EWB') => `${prefix}-${randomCode(4)}${randomCode(4)}${randomCode(4)}`;
+// EWB Bank account numbers are exactly 12 digits: the fixed bank code 605 followed by 9 random digits.
+export const BANK_CODE = '605';
+export const ACCOUNT_NUMBER_RE = /^605\d{9}$/;
+export const LEGACY_ACCOUNT_NUMBER_RE = /^EWB\d{10}$/; // numbers issued before the standard; still resolvable, never generated
+export const isValidAccountNumber = (v) => typeof v === 'string' && ACCOUNT_NUMBER_RE.test(v);
 export function newAccountNumber() {
-  let n = '';
-  for (const b of crypto.randomBytes(10)) n += String(b % 10);
-  return `EWB${n}`;
+  return `${BANK_CODE}${String(crypto.randomInt(0, 1_000_000_000)).padStart(9, '0')}`;
 }
 
 // Encrypt-at-rest for TOTP secrets (AES-256-GCM, key derived from a server secret).

@@ -55,7 +55,7 @@ export function Transfers() {
       <div className="stack" style={{ maxWidth: 560 }}>
         <PageHeader title="Transfer completed" />
         <Card>
-          <Alert tone="success" title="Your transfer was recorded in the ledger">Reference <span className="mono">{done.reference}</span></Alert>
+          <Alert tone="success" title="Your transfer is complete">Reference <span className="mono">{done.reference}</span></Alert>
           <dl className="kv"><div className="kv-row"><dt>Amount</dt><dd>{money(done.amount, done.currency)}</dd></div><div className="kv-row"><dt>To account</dt><dd className="mono">{done.counterparty}</dd></div><div className="kv-row"><dt>Completed</dt><dd>{dateTime(done.completedAt)}</dd></div></dl>
           <div className="row" style={{ marginTop: 16 }}><Button to={`/app/transactions/${done.id}`}>View details</Button><Button variant="secondary" onClick={() => { setDone(null); setF({ fromAccountId: '', toAccountNumber: '', amount: '', description: '' }); setKey(uuid()); }}>Make another transfer</Button></div>
         </Card>
@@ -88,7 +88,7 @@ export function Transfers() {
           <div className="kv-row"><dt>Amount</dt><dd>{from && money(toMinor(f.amount || '0'), from.currency)}</dd></div>
           {f.description && <div className="kv-row"><dt>Description</dt><dd>{f.description}</dd></div>}
         </dl>
-        <p className="muted small">Transfers between EWB accounts are final once recorded. Corrections are made by customer support with new ledger entries.</p>
+        <p className="muted small">Transfers between EWB accounts are final once recorded. Corrections are made by Customer Support with a new, clearly referenced transaction.</p>
       </ConfirmDialog>
     </div>
   );

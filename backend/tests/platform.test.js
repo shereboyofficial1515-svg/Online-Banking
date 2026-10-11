@@ -258,6 +258,8 @@ describe('profile & misc', () => {
     assert.equal(s.status, 200);
     assert.deepEqual(s.body.history.map((h) => h.balance), [12000]);
     assert.equal(s.body.account.availableBalance, 12000);
+    assert.equal(s.body.account.balance, 12000, 'customer API exposes "balance"');
+    assert.equal(s.body.account.ledgerBalance, undefined, 'no ledger terminology in the customer API');
     assert.equal(s.body.monthly.at(-1).in, 12000);
   });
 

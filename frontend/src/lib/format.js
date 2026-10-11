@@ -1,8 +1,30 @@
-export const money = (minor, currency = 'USD') =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(Number(minor ?? 0) / 100);
+// Presentation formatting. Stored values never change: timestamps are UTC instants and money is integer minor units
+// in the account's own currency. These helpers only decide how they are displayed, following the customer's regional
+// preferences (timezone, date/time/number format, currency display) configured via configureFormat().
+const state = { timeZone: undefined, dateFormat: 'system', timeFormat: 'system', numberLocale: undefined, currencyDisplay: 'symbol' };
 
-export const dateTime = (iso) => (iso ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '—');
-export const date = (iso) => (iso ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(iso)) : '—');
+export function configureFormat(p = {}) {
+  state.timeZone = p.timezone || undefined; // undefined = the browser's timezone
+  state.dateFormat = p.dateFormat || 'system';
+  state.timeFormat = p.timeFormat || 'system';
+  state.numberLocale = p.numberFormat && p.numberFormat !== 'system' ? p.numberFormat : undefined;
+  state.currencyDisplay = p.currencyDisplay === 'code' ? 'code' : 'symbol';
+}
+export const getFormat = () => ({ ...state });
+
+const dateLocale = () => ({ mdy: 'en-US', dmy: 'en-GB', ymd: 'en-CA' }[state.dateFormat]); // undefined => browser default
+const hour12 = () => (state.timeFormat === '12h' ? true : state.timeFormat === '24h' ? false : undefined);
+
+export const money = (minor, currency = 'USD') =>
+  new Intl.NumberFormat(state.numberLocale, { style: 'currency', currency, currencyDisplay: state.currencyDisplay }).format(Number(minor ?? 0) / 100);
+export const number = (n, opts) => new Intl.NumberFormat(state.numberLocale, opts).format(n);
+
+const dateOpts = () => (state.dateFormat === 'ymd' ? { year: 'numeric', month: '2-digit', day: '2-digit' } : { year: 'numeric', month: 'short', day: 'numeric' });
+const timeOpts = () => ({ hour: 'numeric', minute: '2-digit', hour12: hour12() });
+
+export const date = (iso) => (iso ? new Intl.DateTimeFormat(dateLocale(), { ...dateOpts(), timeZone: state.timeZone }).format(new Date(iso)) : '—');
+export const time = (iso) => (iso ? new Intl.DateTimeFormat(dateLocale(), { ...timeOpts(), timeZone: state.timeZone }).format(new Date(iso)) : '—');
+export const dateTime = (iso) => (iso ? new Intl.DateTimeFormat(dateLocale(), { ...dateOpts(), ...timeOpts(), timeZone: state.timeZone }).format(new Date(iso)) : '—');
 
 export function relativeTime(iso, now = Date.now()) {
   const s = Math.round((now - new Date(iso).getTime()) / 1000);

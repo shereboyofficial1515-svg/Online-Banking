@@ -1,0 +1,152 @@
+/*
+ * EWB Bank design tokens: the ONLY place colours are defined. Components use semantic tokens (--surface, --text, --accent…),
+ * never raw hex values, so a theme or a brand change updates the whole product consistently.
+ *
+ * Palette: navy blue (structure, headings, navigation) · white (surfaces) · red (brand accent, primary actions, selection).
+ * Status colours are deliberately separate from the brand red: errors are always shown with an icon + text and are never
+ * used as a brand highlight, and destructive buttons are outlined rather than solid red.
+ *
+ * Admin-configurable brand colours arrive as --brand-primary / --brand-secondary / --brand-accent (set at runtime from the
+ * published site settings, validated for contrast on the server). Everything below derives from them.
+ */
+:root {
+  --brand-primary: #0B1F3A;   /* navy */
+  --brand-secondary: #1C3A63; /* lighter navy */
+  --brand-accent: #C8102E;    /* EWB red (5.9:1 on white) */
+
+  /* Typography & shape */
+  --font: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+  --radius: 14px; --radius-sm: 10px; --radius-lg: 20px;
+  --nav-h: 64px; --bottom-h: 64px; --sidebar-w: 256px;
+  --focus-width: 3px;
+
+  /* ── Light theme ── */
+  color-scheme: light;
+  --bg: #F4F6FA;
+  --surface: #FFFFFF;
+  --surface-2: #F0F3F8;          /* subtle fills, table headers, chips */
+  --surface-3: #E6EBF3;          /* hover on fills */
+  --hover: #F7F9FC;
+  --border: #DDE3EC;
+  --border-strong: #8792A5;          /* >= 3:1 on white: input and control boundaries */
+  --text: #17233A;
+  --text-strong: #0F1B30;
+  --text-muted: #566277;         /* 5.9:1 on --bg */
+  --text-inverse: #FFFFFF;
+  --heading: var(--brand-primary);
+
+  --primary: var(--brand-primary);
+  --secondary: var(--brand-secondary);
+  --primary-contrast: #FFFFFF;
+
+  --accent: var(--brand-accent);
+  --accent-hover: color-mix(in srgb, var(--brand-accent) 82%, #000);
+  --accent-contrast: #FFFFFF;
+  --accent-text: var(--accent-hover);                              /* links / text accents on surfaces */
+  --accent-soft: color-mix(in srgb, var(--brand-accent) 8%, #fff);
+  --accent-border: color-mix(in srgb, var(--brand-accent) 28%, #fff);
+  --accent-on-nav: color-mix(in srgb, var(--brand-accent) 62%, #fff); /* indicator on navy */
+
+  --nav-bg: var(--brand-primary);
+  --nav-bg-2: color-mix(in srgb, var(--brand-primary) 82%, #000);
+  --nav-text: #CBD6E8;
+  --nav-text-muted: #91A3C0;
+  --nav-hover: rgba(255, 255, 255, .08);
+  --nav-active: rgba(255, 255, 255, .14);
+
+  --success: #17794B; --success-soft: #E6F5EC; --success-border: #B4DFC7; --success-strong: #0D5733;
+  --warning: #8A5A00; --warning-soft: #FFF5DD; --warning-border: #EBD39A; --warning-strong: #5C3C00;
+  --error: #B3261E;   --error-soft: #FDECEC;   --error-border: #F1B8B4;   --error-strong: #7A1912;
+  --info: #1D5FB4;    --info-soft: #E8F0FC;    --info-border: #B9D0F2;    --info-strong: #123F7A;
+
+  --focus: #2563EB;
+  --focus-ring: rgba(37, 99, 235, .28);
+
+  --chart-1: var(--accent);        /* money in / main line */
+  --chart-2: var(--secondary);     /* money out */
+  --chart-grid: var(--border);
+
+  --skeleton-1: #E8ECF3; --skeleton-2: #F4F6FA;
+  --switch-off: #B3BDCD;
+  --overlay: rgba(7, 20, 39, .55);
+  --toast-bg: var(--brand-primary); --toast-text: #FFFFFF;
+  --toast-success-bg: #0E5233; --toast-error-bg: #7A1912;
+  --shadow-sm: 0 1px 2px rgba(11, 31, 58, .06);
+  --shadow: 0 2px 4px rgba(11, 31, 58, .04), 0 8px 24px rgba(11, 31, 58, .07);
+  --shadow-lg: 0 12px 40px rgba(11, 31, 58, .18);
+
+  /* Hero sits on a photograph, so its text/overlay are theme-independent and always high contrast. */
+  --hero-overlay: linear-gradient(100deg, rgba(7, 18, 36, .94) 0%, rgba(9, 25, 48, .84) 48%, rgba(11, 31, 58, .66) 100%);
+  --hero-text: #FFFFFF; --hero-text-muted: #D5DEEC;
+
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23566277' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* ── Dark theme ── */
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0A1426;
+  --surface: #111F38;
+  --surface-2: #172A4B;
+  --surface-3: #1E3560;
+  --hover: #15274A;
+  --border: #263A60;
+  --border-strong: #5873A8;
+  --text: #E7ECF5;
+  --text-strong: #F6F8FC;
+  --text-muted: #A9B7CE;         /* 7.4:1 on --surface */
+  --heading: #F6F8FC;
+
+  --primary: #2B4373;
+  --secondary: #8FB0E8;
+  --accent-hover: color-mix(in srgb, var(--brand-accent) 82%, #000);
+  --accent-text: color-mix(in srgb, var(--brand-accent) 52%, #fff);           /* readable red on dark surfaces */
+  --accent-soft: color-mix(in srgb, var(--brand-accent) 20%, var(--surface));
+  --accent-border: color-mix(in srgb, var(--brand-accent) 45%, var(--surface));
+
+  --nav-bg: #070F1E;
+  --nav-bg-2: #0B172B;
+
+  --success: #5FD18F; --success-soft: #11321F; --success-border: #1F6B42; --success-strong: #A9EDC7;
+  --warning: #F2C066; --warning-soft: #3A2B0A; --warning-border: #7A5A16; --warning-strong: #FBDDA0;
+  --error: #FF8E86;   --error-soft: #3C1715;   --error-border: #8A3530;   --error-strong: #FFC9C4;
+  --info: #8DB8FF;    --info-soft: #102A52;    --info-border: #2C5596;    --info-strong: #C5DBFF;
+
+  --focus: #8CB8FF;
+  --focus-ring: rgba(140, 184, 255, .35);
+
+  --chart-1: color-mix(in srgb, var(--brand-accent) 55%, #fff);
+  --chart-2: #8FB0E8;
+
+  --skeleton-1: #172A4B; --skeleton-2: #20386A;
+  --switch-off: #4A5F86;
+  --overlay: rgba(2, 8, 20, .72);
+  --toast-bg: #1E3560; --toast-text: #F6F8FC;
+  --toast-success-bg: #14472D; --toast-error-bg: #5A1D19;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow: 0 2px 4px rgba(0, 0, 0, .25), 0 8px 24px rgba(0, 0, 0, .35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, .55);
+
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A9B7CE' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* ── High contrast (customer preference): stronger text, borders and focus in either theme ── */
+html[data-contrast='high'] {
+  --text: #000000; --text-strong: #000000; --text-muted: #2B3445;
+  --border: #5E6B82; --border-strong: #2B3445;
+  --accent-hover: color-mix(in srgb, var(--brand-accent) 62%, #000);
+  --accent-text: color-mix(in srgb, var(--brand-accent) 62%, #000);
+  --focus-width: 4px;
+}
+html[data-theme='dark'][data-contrast='high'] {
+  --text: #FFFFFF; --text-strong: #FFFFFF; --text-muted: #E1E8F4;
+  --border: #9FB3D6; --border-strong: #CBD8EE; --bg: #050B17; --surface: #0B1730;
+  --accent-text: color-mix(in srgb, var(--brand-accent) 38%, #fff);
+}
+
+/* ── Text size (customer preference) ── */
+html { font-size: 100%; }
+html[data-text-size='small'] { font-size: 90%; }
+html[data-text-size='large'] { font-size: 112.5%; }
+html[data-text-size='xlarge'] { font-size: 125%; }

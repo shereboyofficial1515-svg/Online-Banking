@@ -32,6 +32,7 @@ export const registerSchema = z.object({
   postalCode: trimmed(2, 20, 'Postal code').optional(),
   country: trimmed(2, 60, 'Country'),
   username: z.string().trim().toLowerCase().regex(/^[a-z0-9_.]{3,30}$/, 'Use 3-30 letters, numbers, dots or underscores.').optional(),
+  acceptedTerms: z.literal(true, { error: 'You must accept the Terms of Service and Privacy Policy to continue.' }),
 });
 export const loginSchema = z.object({ identifier: trimmed(1, 200, 'Email or username'), password });
 export const loginMfaSchema = z.object({
@@ -52,6 +53,24 @@ export const passkeyRenameSchema = z.object({ name: trimmed(1, 60, 'Name') });
 export const mfaCodeSchema = z.object({ code: code6 });
 export const mfaDisableSchema = z.object({ password, code: code6 });
 
+// ───────── display preferences (presentation only) ─────────
+export const displayPreferencesSchema = z.object({
+  theme: z.enum(['light', 'dark', 'system']).optional(),
+  language: z.string().regex(/^[a-z]{2}(-[A-Z]{2})?$/).optional(),
+  textSize: z.enum(['small', 'default', 'large', 'xlarge']).optional(),
+  motion: z.enum(['system', 'reduce']).optional(),
+  contrast: z.enum(['standard', 'high']).optional(),
+  timezone: z.string().max(64).nullable().optional(),
+  dateFormat: z.enum(['system', 'mdy', 'dmy', 'ymd']).optional(),
+  timeFormat: z.enum(['system', '12h', '24h']).optional(),
+  numberFormat: z.enum(['system', 'en-US', 'en-GB', 'de-DE', 'fr-FR', 'en-IN']).optional(),
+  currencyDisplay: z.enum(['symbol', 'code']).optional(),
+  dashboard: z.object({
+    showChart: z.boolean().optional(), showMoneyInOut: z.boolean().optional(), showRecent: z.boolean().optional(),
+    showSecurity: z.boolean().optional(), defaultAccountId: uuid.nullable().optional(),
+  }).optional(),
+});
+
 // ───────── profile / accounts ─────────
 export const profileSchema = z.object({
   phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number.').optional(),
@@ -60,7 +79,14 @@ export const profileSchema = z.object({
   state: trimmed(1, 80, 'State').optional(),
   postalCode: trimmed(2, 20, 'Postal code').optional(),
   country: trimmed(2, 60, 'Country').optional(),
+  currentPassword: password.optional(), // required by the service when the phone number changes
 });
+export const accountRenameSchema = z.object({ name: trimmed(2, 40, 'Account name') });
+export const emailChangeRequestSchema = z.object({ newEmail: z.string().trim().toLowerCase().email('Enter a valid email address.').max(254), password });
+export const emailChangeConfirmSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.') });
+export const closureRequestSchema = z.object({ reason: z.string().trim().max(500).optional(), password });
+export const closureDecisionSchema = z.object({ decision: z.enum(['complete', 'decline']), note: z.string().trim().max(500).optional() });
+export const feedbackSchema = z.object({ kind: z.enum(['suggestion', 'problem', 'compliment']), message: z.string().trim().min(10, 'Please write at least 10 characters.').max(2000) });
 export const openAccountSchema = z.object({ type: z.enum(['checking', 'savings']), name: z.string().trim().max(40).optional() });
 export const idParam = z.object({ id: uuid });
 
@@ -75,7 +101,7 @@ export const transactionQuery = pagination.extend({
 });
 export const transferSchema = z.object({
   fromAccountId: uuid,
-  toAccountNumber: z.string().trim().toUpperCase().regex(/^EWB\d{10}$/, 'Enter a valid EWB account number.'),
+  toAccountNumber: z.string().trim().toUpperCase().regex(/^(605\d{9}|EWB\d{10})$/, 'Enter a valid 12-digit EWB account number (it starts with 605).'),
   amount: money,
   description: z.string().trim().max(140).optional(),
   idempotencyKey: z.string().min(8).max(80),

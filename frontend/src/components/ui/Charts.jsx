@@ -22,11 +22,11 @@ export function BalanceChart({ history, currency = 'USD' }) {
     <figure className="chart" aria-labelledby={`${id}-t`}>
       <figcaption id={`${id}-t`} className="sr-only">Balance history. Latest balance {money(last.balance, currency)} on {date(last.at)}.</figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-hidden="false" preserveAspectRatio="none" className="chart-svg">
-        <defs><linearGradient id={`${id}-g`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--accent)" stopOpacity=".22" /><stop offset="1" stopColor="var(--accent)" stopOpacity="0" /></linearGradient></defs>
+        <defs><linearGradient id={`${id}-g`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--chart-1)" stopOpacity=".22" /><stop offset="1" stopColor="var(--chart-1)" stopOpacity="0" /></linearGradient></defs>
         {[0.25, 0.5, 0.75].map((f) => <line key={f} x1={pad.l} x2={W - pad.r} y1={pad.t + f * (H - pad.t - pad.b)} y2={pad.t + f * (H - pad.t - pad.b)} className="chart-grid" />)}
         <path d={area} fill={`url(#${id}-g)`} />
-        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <circle cx={last.x} cy={last.y} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="2" />
+        <path d={line} fill="none" stroke="var(--chart-1)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <circle cx={last.x} cy={last.y} r="4.5" fill="var(--chart-1)" stroke="var(--surface)" strokeWidth="2" />
       </svg>
       <div className="chart-axis"><span>{date(pts[0].at)}</span><span>{date(last.at)}</span></div>
     </figure>

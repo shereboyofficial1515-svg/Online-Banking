@@ -9,6 +9,7 @@ import * as withdrawals from '../services/withdrawalService.js';
 import * as verification from '../services/verificationService.js';
 import * as support from '../services/supportService.js';
 import * as security from '../services/securityEventService.js';
+import * as settings from '../services/settingsService.js';
 import * as audit from '../services/auditService.js';
 import * as mfa from '../services/mfaService.js';
 import { can } from '../config/permissions.js';
@@ -101,3 +102,7 @@ export const listAudit = h(async (req, res) => res.json(await audit.list(req.que
 export const listStaff = h(async (req, res) => res.json({ staff: await admin.listStaff() }));
 export const createStaff = h(async (req, res) => res.status(201).json({ staff: await admin.createStaff(req.ctx, req.body) }));
 export const updateStaff = h(async (req, res) => res.json({ staff: await admin.updateStaff(req.ctx, req.params.id, req.body) }));
+
+// account closure requests (customer settings workflow)
+export const listClosures = h(async (req, res) => res.json(await settings.listClosureRequests()));
+export const decideClosure = h(async (req, res) => res.json({ closure: await settings.decideClosure(req.ctx, req.params.id, req.body) }));

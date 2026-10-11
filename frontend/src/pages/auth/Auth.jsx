@@ -132,7 +132,7 @@ export function Register() {
     try {
       const { confirm, agree, ...body } = f;
       Object.keys(body).forEach((k) => { if (body[k] === '') delete body[k]; });
-      await api.post('/api/auth/register', body);
+      await api.post('/api/auth/register', { ...body, acceptedTerms: true }); // the server records which version of each document was accepted
       nav('/verify-email', { replace: true, state: { email: f.email.trim().toLowerCase(), justRegistered: true } });
     } catch (ex) { setErr(ex); setFe(fieldErrors(ex)); } finally { setBusy(false); }
   };

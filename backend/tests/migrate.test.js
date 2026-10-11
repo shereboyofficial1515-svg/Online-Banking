@@ -1,7 +1,7 @@
 import './env.js';
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initDb, closeDb } from '../src/db/index.js';
@@ -9,13 +9,14 @@ import { migrate, status } from '../src/db/migrate.js';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/db/migrations');
 const sql = (f) => readFileSync(path.join(dir, f), 'utf8');
+const ALL = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
 after(closeDb);
 
 describe('migrations', () => {
   test('fresh database: applies everything once, then is a no-op', async () => {
     const db = await initDb();
-    assert.deepEqual((await status(db)).pending.length, 4);
-    assert.deepEqual(await migrate(db), ['001_schema.sql', '002_rls.sql', '003_storage_buckets.sql', '004_verification_code_attempts.sql']);
+    assert.deepEqual((await status(db)).pending, ALL);
+    assert.deepEqual(await migrate(db), ALL);
     assert.deepEqual(await migrate(db), []);
     assert.deepEqual((await status(db)).pending, []);
   });
@@ -30,12 +31,12 @@ describe('migrations', () => {
     const before = await status(db);
     assert.equal(before.hasTracker, false);
     assert.deepEqual(before.baselineCandidates, ['001_schema.sql', '002_rls.sql']);
-    assert.deepEqual(before.pending, ['003_storage_buckets.sql', '004_verification_code_attempts.sql']);
+    assert.deepEqual(before.pending, ALL.slice(2));
 
     const applied = await migrate(db); // would throw "relation already exists" without baselining
-    assert.deepEqual(applied, ['003_storage_buckets.sql', '004_verification_code_attempts.sql']);
+    assert.deepEqual(applied, ALL.slice(2));
     assert.equal((await db.query('SELECT count(*)::int n FROM users')).rows[0].n, 1, 'existing data untouched');
-    assert.deepEqual((await db.query('SELECT name FROM schema_migrations ORDER BY name')).rows.map((r) => r.name), ['001_schema.sql', '002_rls.sql', '003_storage_buckets.sql', '004_verification_code_attempts.sql']);
+    assert.deepEqual((await db.query('SELECT name FROM schema_migrations ORDER BY name')).rows.map((r) => r.name), ALL);
   });
 
   test('status() is read-only', async () => {

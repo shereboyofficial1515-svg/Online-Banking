@@ -5,11 +5,16 @@ import { sniffMime, EXT } from '../providers/storage.js';
 import * as users from '../repositories/users.js';
 import * as audit from './auditService.js';
 import { randomToken } from '../utils/crypto.js';
-import { badRequest, notFound } from '../utils/errors.js';
+import { verifyPassword } from '../utils/passwords.js';
+import { badRequest, notFound, validationError } from '../utils/errors.js';
 
 /** Customers may change contact details and address. Name, email and date of birth are identity data and go through support. */
 export async function updateProfile(ctx, user, input) {
   const fields = {};
+  const phoneChanging = input.phone !== undefined && (input.phone || null) !== (user.phone || null);
+  if (phoneChanging && !(input.currentPassword && await verifyPassword(user.password_hash, input.currentPassword))) {
+    throw validationError({ currentPassword: ['Enter your current password to change your phone number.'] }); // the phone number is a recovery/contact channel
+  }
   const map = { phone: 'phone', addressLine1: 'address_line1', city: 'city', state: 'state', postalCode: 'postal_code', country: 'country' };
   for (const [k, col] of Object.entries(map)) if (input[k] !== undefined) fields[col] = input[k] || null;
   if (fields.phone !== undefined && fields.phone !== user.phone) fields.phone_verified_at = null; // a new number is unverified

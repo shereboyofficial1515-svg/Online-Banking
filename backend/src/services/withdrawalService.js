@@ -193,7 +193,7 @@ export async function transition(ctx, id, action, reason) {
       if (ur[0].verification_status !== 'verified') throw conflict('The customer must complete identity verification before approval.', 'VERIFICATION_REQUIRED');
       if (ur[0].status !== 'active') throw conflict('The customer account is restricted.', 'ACCOUNT_RESTRICTED');
       const { ledger, held } = await L.balances(t, cur.account_id);
-      if (ledger < held) throw conflict('Insufficient ledger balance to cover this and other open requests.', 'INSUFFICIENT_FUNDS');
+      if (ledger < held) throw conflict('Your balance does not cover this and your other open requests.', 'INSUFFICIENT_FUNDS');
     }
     const decided = action === 'approve' || action === 'reject';
     const { rows: up } = await t.query(

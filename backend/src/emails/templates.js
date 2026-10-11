@@ -30,7 +30,7 @@ function layout({ preheader, heading, bodyHtml, security = true }) {
 <div style="font-size:15px;line-height:1.65">${bodyHtml}</div></td></tr>
 <tr><td style="padding:8px 32px 30px"><hr style="border:none;border-top:1px solid #E6E9EF;margin:18px 0">
 ${security ? `<p style="font-size:12.5px;line-height:1.6;color:#5B6678;margin:0 0 10px"><strong>Security tip:</strong> keep your password and verification codes private; they are only ever entered on the EWB Bank website. Questions about this message? Contact us at <a href="mailto:${esc(config.email.supportEmail)}" style="color:${NAVY}">${esc(config.email.supportEmail)}</a>.</p>` : ''}
-<p style="font-size:12px;line-height:1.6;color:#7C8799;margin:0">Sent ${esc(now)}. EWB Bank is a financial technology platform. Account balances are ledger balances maintained by EWB Bank; see our <a href="${esc(config.appUrl)}/terms" style="color:#7C8799">Terms of Service</a> for details.</p>
+<p style="font-size:12px;line-height:1.6;color:#7C8799;margin:0">Sent ${esc(now)}. EWB Bank is a financial technology platform. Account balances are maintained by EWB Bank; see our <a href="${esc(config.appUrl)}/terms" style="color:#7C8799">Terms of Service</a> for details.</p>
 </td></tr></table></td></tr></table></body></html>`;
 }
 
@@ -48,6 +48,11 @@ const T = {
     subject: 'Your EWB Bank verification code',
     heading: 'Verify your email address',
     body: `<p>${hi(d)}</p><p>Welcome to EWB Bank. Enter the code below on the verification page to confirm your email address and finish setting up your profile.</p>${codeBlock(d.code)}<p style="text-align:center;color:#5B6678;font-size:13.5px;margin:-6px 0 0">This code is valid for ${esc(d.minutes)} minutes.</p>${button(d.url, 'Verify my email', 'center')}<p style="font-size:13px;color:#5B6678;margin:0;text-align:center">Haven't created an EWB Bank profile? No action is needed.</p>`,
+  }),
+  email_change: (d) => ({
+    subject: 'Confirm your new EWB Bank email address',
+    heading: 'Confirm your new email address',
+    body: `<p>${hi(d)}</p><p>Enter the code below in your account settings to make this the email address for your EWB Bank profile.</p>${codeBlock(d.code)}<p style="text-align:center;color:#5B6678;font-size:13.5px;margin:-6px 0 0">This code is valid for ${esc(d.minutes)} minutes.</p><p style="font-size:13px;color:#5B6678;margin:0;text-align:center">If you didn't ask for this, you can ignore this message and nothing will change.</p>`,
   }),
   login_notification: (d) => ({
     subject: 'New sign-in to your EWB Bank account',
@@ -97,7 +102,7 @@ const T = {
   ledger_adjustment: (d) => ({
     subject: `${d.direction === 'credit' ? 'Credit' : 'Debit'} posted to your account`,
     heading: `A ${d.direction} was posted to your account`,
-    body: `<p>${hi(d)}</p><p>A ${esc(d.direction)} was recorded in your EWB Bank ledger.</p>${detailTable([['Amount', money(d.amount, d.currency)], ['Reference', d.reference], ['Account', d.accountMasked], ['Description', d.description], ['Posted (UTC)', d.time]])}`,
+    body: `<p>${hi(d)}</p><p>A ${esc(d.direction)} was posted to your EWB Bank account.</p>${detailTable([['Amount', money(d.amount, d.currency)], ['Reference', d.reference], ['Account', d.accountMasked], ['Description', d.description], ['Posted (UTC)', d.time]])}`,
   }),
   transfer_receipt: (d) => ({
     subject: `Transfer ${d.role === 'sender' ? 'sent' : 'received'}`,

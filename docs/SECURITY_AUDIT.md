@@ -100,3 +100,28 @@ the recipient's account number each time). Resend, Supabase and WebAuthn are imp
 6. Not tested against live Supabase writes, live Resend delivery, a real WebAuthn authenticator, or real Vercel/Render. `npm run test:pg` passes all assertions through the `pg` driver, but its socket test-shim reports a protocol error at process exit for some files (a shim artifact, not an application failure).
 7. No automated accessibility audit or independent penetration test has been run.
 8. The Terms/Privacy text is a draft and needs legal review.
+
+---
+
+# Engineering Task 02 — security notes (rebrand, admin CMS, settings)
+
+New attack surface added by Task 02 and how each part is controlled. This is a design/test summary, not an independent assessment.
+
+| Area | Control | Verified by |
+| --- | --- | --- |
+| Admin website editor | `site.manage` required on every route; all input validated by zod (no HTML, no control characters, https/in-site links only, fixed icon list, hex colours with WCAG contrast limits); draft/publish with immutable numbered versions (DB triggers); every change audited | `backend/tests/site.test.js` |
+| Image uploads | Type and size read from the file bytes (SVG/HTML renamed to `.png` is rejected), per-kind size/dimension limits, stored in a private bucket, random object names, served only while published, `nosniff` + `Content-Security-Policy: default-src 'none'; sandbox` | `site.test.js` (upload test) |
+| Public site failure mode | Invalid or missing stored content falls back to built-in defaults; a corrupted row test proves the endpoint still returns 200 | `site.test.js` |
+| Legal documents | `legal.edit` to draft, `legal.publish` + fresh MFA code to publish or restore; raw HTML and `javascript:`/`data:` links refused server-side; rendered as React elements only (no `innerHTML`), links re-checked client-side; acceptance rows append-only and tied to the exact version | `site.test.js`, `frontend/src/test/site.test.jsx` |
+| Email change | Needs the account password, code sent only to the **new** address (keyed-hash storage, 15 min, 5 guesses, 60 s cooldown), other sessions revoked on success, old address notified; an address already in use produces the same response and alerts its owner (no enumeration) | `backend/tests/settings.test.js` |
+| Phone change | Requires the current password | `settings.test.js` |
+| Account closure | Password required; refused unless balance and holds are zero and no withdrawal is open; staff decision needs `accounts.review`, re-checks the balance under a row lock and is audited; history is never deleted | `settings.test.js` |
+| Preferences | Presentation only; enums validated server-side; `defaultAccountId` must belong to the user | `backend/tests/preferences.test.js` |
+| Account numbers | Backend-generated `605` + 9 random digits, unique index, collision-safe insert, immutability trigger | `backend/tests/accounts.test.js` |
+| Cross-origin images | Asset responses send `Cross-Origin-Resource-Policy: cross-origin` (needed when the SPA and API are on different origins); the SPA's CSP `img-src 'self'` holds in the recommended Vercel-rewrite setup because images are same-origin there | same-origin path exercised locally; a true cross-origin deployment was **not** tested |
+
+**Not verified / limitations**
+* Image optimisation of administrator uploads is not performed (no image library is bundled); files are validated and size-limited but stored as uploaded. Only upload images you have the right to use.
+* Uploaded logos are raster formats only (PNG/JPEG/WebP/ICO). SVG is deliberately refused because it can carry script.
+* The legal text shipped with the product is a draft and has **not** been reviewed by a lawyer. The admin console labels it so until an administrator publishes their own version.
+* Migrations `005`–`008` have been tested on the embedded Postgres engine only; they have not yet been applied to the production Supabase project.

@@ -12,6 +12,7 @@ import { useApi, useDocumentTitle } from '../../lib/hooks.js';
 import { api, fieldErrors } from '../../lib/api.js';
 import { money, dateTime, mask, titleCase } from '../../lib/format.js';
 import { useAuth } from '../../lib/auth.jsx';
+import { usePrefs } from '../../lib/PreferencesProvider.jsx';
 
 function AccountStatusNotice({ account, verification }) {
   if (!account) return null;
@@ -27,9 +28,9 @@ function Balance({ account }) {
     <section className="balance-card" data-animate aria-labelledby="bal-h">
       <div className="row-between"><h2 id="bal-h">Available balance</h2><Badge status={account.status} /></div>
       <div className="balance-amount">{money(account.availableBalance, account.currency)}</div>
-      <div className="small" style={{ color: '#AFC0D8' }}>{account.name} · <span className="mono">{account.accountNumber}</span></div>
+      <div className="small" style={{ color: 'var(--nav-text)' }}>{account.name} · <span className="mono">{account.accountNumber}</span></div>
       <div className="balance-meta">
-        <div><span className="label">Ledger balance</span><strong>{money(account.ledgerBalance, account.currency)}</strong></div>
+        <div><span className="label">Balance</span><strong>{money(account.balance, account.currency)}</strong></div>
         {account.heldAmount > 0 && <div><span className="label">Held for open requests</span><strong>{money(account.heldAmount, account.currency)}</strong></div>}
         <div><span className="label">Currency</span><strong>{account.currency}</strong></div>
       </div>
@@ -41,7 +42,9 @@ export default function Overview() {
   useDocumentTitle('Overview');
   const { user } = useAuth();
   const accounts = useApi('/api/accounts');
-  const primary = accounts.data?.accounts?.[0];
+  const { prefs } = usePrefs();
+  const dash = prefs.dashboard;
+  const primary = accounts.data?.accounts?.find((a) => a.id === dash.defaultAccountId) || accounts.data?.accounts?.[0]; // the customer's chosen default account first
   const summary = useApi(primary ? `/api/accounts/${primary.id}/summary` : null, null, { enabled: !!primary });
   const txs = useApi('/api/transactions', { limit: 6 });
   const verification = useApi('/api/verification/status');
@@ -61,26 +64,28 @@ export default function Overview() {
       <PageHeader title={`Hello, ${user.firstName}`} subtitle="Here’s a summary of your accounts and security." actions={<><Button to="/app/transfers" icon="swap" size="md">Transfer</Button><Button to="/app/withdrawals" variant="secondary" icon="upload">Request withdrawal</Button></>} />
       <AccountStatusNotice account={primary} verification={verification.data} />
       {primary && <Balance account={primary} />}
+      {(dash.showChart || dash.showMoneyInOut) && (
       <div className="grid grid-2">
-        <Card title="Balance history" subtitle="Running balance from ledger entries" data-animate>
-          {summary.loading ? <SkeletonCard lines={2} /> : summary.data?.history?.length ? <BalanceChart history={summary.data.history} currency={primary.currency} /> : <EmptyState icon="chart" title="No activity yet">Your balance history appears here once ledger entries are posted.</EmptyState>}
-        </Card>
-        <Card title="Money in and out" subtitle="Last six months" data-animate>
+        {dash.showChart && <Card title="Balance history" subtitle="Your balance over time" data-animate>
+          {summary.loading ? <SkeletonCard lines={2} /> : summary.data?.history?.length ? <BalanceChart history={summary.data.history} currency={primary.currency} /> : <EmptyState icon="chart" title="No activity yet">Your balance history appears here after your first transaction.</EmptyState>}
+        </Card>}
+        {dash.showMoneyInOut && <Card title="Money in and out" subtitle="Last six months" data-animate>
           {summary.loading ? <SkeletonCard lines={2} /> : summary.data?.monthly?.length ? <InOutChart monthly={summary.data.monthly} currency={primary.currency} /> : <EmptyState icon="chart" title="Nothing to show yet">Monthly totals appear after your first transaction.</EmptyState>}
-        </Card>
+        </Card>}
       </div>
+      )}
       <div className="grid grid-2">
-        <Card title="Recent transactions" action={<Link to="/app/transactions" className="small">View all</Link>} data-animate>
-          {txs.loading ? <SkeletonRows rows={4} /> : txs.data?.items?.length ? <ul className="tx-list">{txs.data.items.map((t) => <TransactionRow key={t.id} tx={t} />)}</ul> : <EmptyState icon="list" title="No transactions yet">Transactions are created from real ledger activity and will appear here.</EmptyState>}
-        </Card>
-        <Card title="Security status" subtitle="Strengthen your protection" action={<Link to="/app/security" className="small">Manage</Link>} data-animate>
+        {dash.showRecent && <Card title="Recent transactions" action={<Link to="/app/transactions" className="small">View all</Link>} data-animate>
+          {txs.loading ? <SkeletonRows rows={4} /> : txs.data?.items?.length ? <ul className="tx-list">{txs.data.items.map((t) => <TransactionRow key={t.id} tx={t} />)}</ul> : <EmptyState icon="list" title="No transactions yet">Your transactions will appear here as soon as they are recorded.</EmptyState>}
+        </Card>}
+        {dash.showSecurity && <Card title="Security status" subtitle="Strengthen your protection" action={<Link to="/app/security" className="small">Manage</Link>} data-animate>
           <ul className="checklist">
             {checks.map((c) => (
               <li key={c.label}><Icon name={c.ok ? 'check-circle' : 'alert'} className={c.ok ? 'check-ok' : 'check-todo'} /><span className="grow">{c.label}</span>{c.ok ? <Badge tone="success">Done</Badge> : c.to ? <Button size="sm" variant="secondary" to={c.to}>Set up</Button> : <Badge tone="warning">Pending</Badge>}</li>
             ))}
           </ul>
           <p className="muted small" style={{ marginTop: 12 }}>Account ID {primary ? mask(primary.accountNumber) : '—'} · Member since {primary ? dateTime(primary.createdAt).split(',')[0] : '—'}</p>
-        </Card>
+        </Card>}
       </div>
     </div>
   );
@@ -112,10 +117,10 @@ export function Accounts() {
               <div className="grow"><h2>{a.name}</h2><span className="muted small">{titleCase(a.type)} · {a.currency}</span></div>
               <Badge status={a.status} />
             </div>
-            <div className="balance-amount" style={{ color: 'var(--navy-900)', fontSize: '2rem' }}>{money(a.availableBalance, a.currency)}</div>
+            <div className="balance-amount" style={{ color: 'var(--heading)', fontSize: '2rem' }}>{money(a.availableBalance, a.currency)}</div>
             <dl className="kv">
               <div className="kv-row"><dt>Account number</dt><dd className="mono">{a.accountNumber}</dd></div>
-              <div className="kv-row"><dt>Ledger balance</dt><dd>{money(a.ledgerBalance, a.currency)}</dd></div>
+              <div className="kv-row"><dt>Balance</dt><dd>{money(a.balance, a.currency)}</dd></div>
               <div className="kv-row"><dt>Held for open requests</dt><dd>{money(a.heldAmount, a.currency)}</dd></div>
               <div className="kv-row"><dt>Opened</dt><dd>{dateTime(a.createdAt).split(',')[0]}</dd></div>
             </dl>
@@ -123,7 +128,7 @@ export function Accounts() {
           </Card>
         ))}
       </div>
-      <p className="muted small">Balances are calculated from the ledger entries recorded on each account.</p>
+      <p className="muted small">Balances update as transactions complete on each account.</p>
       <Modal open={open} onClose={() => setOpen(false)} title="Open another account" size="sm"
         footer={<><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button loading={busy} type="submit" form="open-acct">Open account</Button></>}>
         <form id="open-acct" onSubmit={create}>

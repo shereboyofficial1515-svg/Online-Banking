@@ -41,9 +41,9 @@ cd frontend && npm run dev          # SPA on http://localhost:5173 (proxies /api
 ```
 **Tests.**
 ```bash
-cd backend  && npm test             # 122 tests, embedded Postgres, never reads .env
+cd backend  && npm test             # 163 tests, embedded Postgres, never reads .env
 cd backend  && npm run test:pg      # same suites through the production `pg` driver (1-connection pool)
-cd frontend && npm test             # 31 tests
+cd frontend && npm test             # 76 tests
 cd frontend && npm run build        # production build + automatic secret scan of the bundle
 ```
 
@@ -84,7 +84,9 @@ cd frontend && npm run build        # production build + automatic secret scan o
 
 On startup the API validates all of this and **exits with a list of exactly which variables are missing or invalid (names only, never values)**. It also refuses `localhost`/`http` origins, placeholder values and `COOKIE_SECURE=false` in production.
 
-**Database setup for Render.** Run migrations once from your machine against the target project (`DATABASE_URL=… npm run migrate:status`, then `npm run migrate`) — they are not run automatically on deploy. Create the first admin with `npm run seed:admin`. Supabase buckets `profile-photos`, `kyc-documents`, `support-attachments` must exist and be **private** (migration `003` creates them).
+**Database setup for Render.** Run migrations once from your machine against the target project (`DATABASE_URL=… npm run migrate:status`, then `npm run migrate`) — they are not run automatically on deploy. Create the first admin with `npm run seed:admin`. Supabase buckets `profile-photos`, `kyc-documents`, `support-attachments` and `site-assets` must exist and be **private** (migrations `003` and `007` create them).
+
+**Task 02 migrations (`005`–`008`)** are additive and are **not** applied automatically. Order of operations on production: back up → `npm run migrate:status` → `npm run migrate` → deploy the new API and frontend together (the frontend now sends `acceptedTerms` at sign-up; an old API ignores it and a new API requires it, so deploy both before announcing). Renumbering any legacy account numbers is a separate, optional step described in `docs/ACCOUNT_NUMBERS.md`. No new environment variable is required (`SUPABASE_BUCKET_SITE` defaults to `site-assets`).
 
 **Steps.** 1) Push the repo. 2) Render → New → Blueprint → select the repo. 3) Fill the `sync: false` variables. 4) Deploy. 5) Verify (below).
 

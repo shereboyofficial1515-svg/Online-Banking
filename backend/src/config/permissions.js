@@ -14,11 +14,12 @@ const ALL = [
   'dashboard.read', 'customers.read', 'customers.status', 'accounts.review', 'sessions.reset', 'verification.review',
   'withdrawals.read', 'withdrawals.note', 'withdrawals.review', 'withdrawals.decide', 'ledger.read', 'ledger.adjust', 'ledger.reverse',
   'support.read', 'support.manage', 'security.read', 'security.manage', 'audit.read', 'staff.manage',
+  'site.manage', 'legal.edit', 'legal.publish',
 ];
 
 export const ROLE_PERMISSIONS = {
   super_admin: ALL,
-  compliance_admin: ['dashboard.read', 'customers.read', 'accounts.review', 'verification.review', 'withdrawals.read', 'withdrawals.note', 'withdrawals.review', 'audit.read', 'support.read'],
+  compliance_admin: ['dashboard.read', 'customers.read', 'accounts.review', 'verification.review', 'withdrawals.read', 'withdrawals.note', 'withdrawals.review', 'audit.read', 'support.read', 'legal.edit'],
   support_agent: ['dashboard.read', 'customers.read', 'support.read', 'support.manage', 'withdrawals.read', 'withdrawals.note'],
   finance_operator: ['dashboard.read', 'customers.read', 'ledger.read', 'ledger.adjust', 'ledger.reverse', 'withdrawals.read', 'withdrawals.note', 'withdrawals.decide'],
   security_admin: ['dashboard.read', 'customers.read', 'customers.status', 'sessions.reset', 'security.read', 'security.manage', 'audit.read'],

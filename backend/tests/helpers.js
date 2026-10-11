@@ -44,7 +44,7 @@ export const uniqueEmail = (p = 'user') => `${p}${Date.now()}${seq++}@example.te
 
 export const registrationBody = (over = {}) => ({
   email: uniqueEmail(), password: PASSWORD, firstName: 'Taylor', lastName: 'Reed', phone: '+1 555 010 0199', dateOfBirth: '1990-05-17',
-  addressLine1: '12 Harbor Road', city: 'Boston', state: 'MA', postalCode: '02110', country: 'US', ...over,
+  addressLine1: '12 Harbor Road', city: 'Boston', state: 'MA', postalCode: '02110', country: 'US', acceptedTerms: true, ...over,
 });
 
 /** Create a ready-to-use customer directly in the DB (verified email, active account). */

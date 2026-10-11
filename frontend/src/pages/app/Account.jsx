@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Field, Input, Switch, Tabs } from '../../components/ui/Controls.jsx';
+import { Button, Field, Input, PasswordInput, Tabs } from '../../components/ui/Controls.jsx';
 import { Alert, Badge, Card, EmptyState, ErrorState, KeyValue, PageHeader, SkeletonCard, SkeletonRows } from '../../components/ui/Feedback.jsx';
 import Icon from '../../components/ui/Icon.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
@@ -14,16 +14,18 @@ export function Profile() {
   useDocumentTitle('Profile');
   const { user, reload } = useAuth();
   const toast = useToast();
+  const [pw, setPw] = useState('');
   const [f, setF] = useState({ phone: user.phone || '', addressLine1: user.address.line1 || '', city: user.address.city || '', state: user.address.state || '', postalCode: user.address.postalCode || '', country: user.address.country || '' });
   const [fe, setFe] = useState({});
   const [busy, setBusy] = useState(false);
   const [photoKey, setPhotoKey] = useState(0);
   const file = useRef(null);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const phoneChanged = (f.phone || '') !== (user.phone || '');
 
   const save = async (e) => {
     e.preventDefault(); setBusy(true); setFe({});
-    try { await api.patch('/api/users/me', f); await reload(); toast.success('Profile updated.'); }
+    try { await api.patch('/api/users/me', phoneChanged ? { ...f, currentPassword: pw } : f); await reload(); setPw(''); toast.success('Profile updated.'); }
     catch (ex) { setFe(fieldErrors(ex)); toast.error(ex.message); } finally { setBusy(false); }
   };
   const upload = async (e) => {
@@ -43,7 +45,7 @@ export function Profile() {
           <Button variant="secondary" icon="upload" onClick={() => file.current.click()}>Change photo</Button>
         </div>
       </Card>
-      <Card title="Identity details" subtitle="To change your name, email or date of birth, contact customer support so we can verify the change.">
+      <Card title="Identity details" subtitle="To change your name or date of birth, contact customer support so we can verify the change. You can change your email address in Email settings.">
         <KeyValue items={[
           { label: 'Full name', value: `${user.firstName} ${user.lastName}` },
           { label: 'Email', value: <>{user.email} {user.emailVerified && <Badge tone="success">Verified</Badge>}</> },
@@ -51,12 +53,13 @@ export function Profile() {
           { label: 'Username', value: user.username },
           { label: 'Member since', value: dateTime(user.createdAt) },
         ]} />
-        <Button to="/app/support" variant="ghost" size="sm" icon="lifebuoy">Request a change</Button>
+        <Button to="/app/support" variant="ghost" size="sm" icon="lifebuoy">Request a change</Button> <Button to="/app/settings/email" variant="ghost" size="sm" icon="mail">Change email</Button>
       </Card>
       <Card title="Contact and address">
         <form onSubmit={save} noValidate>
           <div className="form-grid">
             <Field label="Phone number" error={fe.phone} hint={user.phoneVerified ? 'Verified' : 'Changing your number marks it as unverified.'}>{(p) => <Input {...p} type="tel" autoComplete="tel" value={f.phone} onChange={set('phone')} />}</Field>
+            {phoneChanged && <Field label="Current password" error={fe.currentPassword} hint="Required to change your phone number." required>{(p) => <PasswordInput {...p} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} />}</Field>}
             <Field label="Street address" error={fe.addressLine1}>{(p) => <Input {...p} autoComplete="address-line1" value={f.addressLine1} onChange={set('addressLine1')} />}</Field>
             <Field label="City" error={fe.city}>{(p) => <Input {...p} autoComplete="address-level2" value={f.city} onChange={set('city')} />}</Field>
             <Field label="State / region" error={fe.state}>{(p) => <Input {...p} autoComplete="address-level1" value={f.state} onChange={set('state')} />}</Field>
@@ -173,44 +176,6 @@ export function Notifications() {
           ) : <EmptyState icon="bell" title="You’re all caught up">New notifications will appear here.</EmptyState>}
         </Card>
       )}
-    </div>
-  );
-}
-
-// ───────── Settings ─────────
-export function Settings() {
-  useDocumentTitle('Settings');
-  const toast = useToast();
-  const { data, loading, error, refetch } = useApi('/api/notifications/preferences');
-  const [prefs, setPrefs] = useState(null);
-  const list = prefs ?? data?.preferences;
-  if (loading) return <SkeletonCard lines={5} />;
-  if (error) return <ErrorState error={error} onRetry={refetch} />;
-  const change = async (cat, key, val) => {
-    const next = list.map((p) => (p.category === cat ? { ...p, [key]: val } : p));
-    setPrefs(next);
-    try { const r = await api.put('/api/notifications/preferences', { preferences: next.map(({ category, inApp, email }) => ({ category, inApp, email })) }); setPrefs(r.preferences); }
-    catch (ex) { setPrefs(null); toast.error(ex.message); }
-  };
-  return (
-    <div className="stack" style={{ maxWidth: 820 }}>
-      <PageHeader title="Settings" subtitle="Choose how EWB Bank keeps you informed." />
-      <Card title="Notification preferences" subtitle="Security notifications cannot be turned off.">
-        <div role="group" aria-label="Notification preferences">
-          {list.map((p) => (
-            <div key={p.category} className="pref-row">
-              <div><strong>{titleCase(p.category)}</strong>{p.locked && <div className="muted small">Always on to protect your account.</div>}</div>
-              <div className="pref-switches">
-                <label><Switch checked={p.inApp} disabled={p.locked} onChange={(v) => change(p.category, 'inApp', v)} label={`${titleCase(p.category)} in-app notifications`} /> In-app</label>
-                <label><Switch checked={p.email} disabled={p.locked} onChange={(v) => change(p.category, 'email', v)} label={`${titleCase(p.category)} email notifications`} /> Email</label>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-      <Card title="About your balances">
-        <p className="muted">Your balance is calculated from the ledger entries recorded on your account, and every entry is permanent and traceable. See the <Link to="/terms">Terms of Service</Link> for how balances are held and our <Link to="/privacy">Privacy Policy</Link>.</p>
-      </Card>
     </div>
   );
 }

@@ -9,6 +9,9 @@ import { expandCollapse } from '../lib/motion.js';
 export const TYPE_LABEL = { ledger_credit: 'Credit', ledger_debit: 'Debit adjustment', transfer: 'Transfer', withdrawal: 'Withdrawal request', reversal: 'Reversal' };
 const ICON = { ledger_credit: 'download', ledger_debit: 'upload', transfer: 'swap', withdrawal: 'upload', reversal: 'refresh' };
 
+/** Older records were saved with internal wording; always present customer-facing terms. */
+export const displayDescription = (d) => (d || '').replace(/^Ledger (credit|debit adjustment)/i, 'Account $1');
+
 export function signedAmount(t) {
   if (t.direction === 'credit') return `+${money(t.amount, t.currency)}`;
   if (t.direction === 'debit' && t.hasLedgerEntries) return `−${money(t.amount, t.currency)}`;
@@ -41,11 +44,11 @@ export default function TransactionRow({ tx }) {
       <button type="button" className="tx-row" onClick={toggle} aria-expanded={open} aria-controls={`tx-${tx.id}`}>
         <span className={`tx-icon ${incoming ? 'in' : ''}`}><Icon name={ICON[tx.type] || 'list'} size={20} /></span>
         <span className="tx-main">
-          <span className="tx-title" style={{ display: 'block' }}>{tx.description || TYPE_LABEL[tx.type]}</span>
+          <span className="tx-title" style={{ display: 'block' }}>{displayDescription(tx.description) || TYPE_LABEL[tx.type]}</span>
           <span className="tx-sub">{dateTime(tx.createdAt)} · <span className="mono">{tx.reference}</span></span>
         </span>
         <span className="tx-amount"><span className={`amount ${incoming ? 'credit' : ''}`} style={{ display: 'block' }}>{signedAmount(tx)}</span><Badge status={tx.status} /></span>
-        <Icon name="chevron-down" size={18} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s', color: 'var(--muted)' }} />
+        <Icon name="chevron-down" size={18} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s', color: 'var(--text-muted)' }} />
       </button>
       <div id={`tx-${tx.id}`} ref={panel} className="tx-detail" role="region" aria-label={`Details for ${tx.reference}`} hidden={!open && !detail ? true : undefined} style={open ? { height: 'auto', opacity: 1 } : undefined}>
         <div className="tx-detail-inner">

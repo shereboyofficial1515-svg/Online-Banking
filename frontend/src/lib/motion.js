@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect } from 'react';
 import gsap from 'gsap';
 
-export const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+export const prefersReducedMotion = () => typeof window !== 'undefined' && (document.documentElement.dataset.motion === 'reduce' || !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
 
 /** Fade/slide children marked with [data-animate] into place, staggered. */
 export function useEnter(ref, deps = []) {
