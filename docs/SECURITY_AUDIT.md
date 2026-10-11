@@ -125,3 +125,23 @@ New attack surface added by Task 02 and how each part is controlled. This is a d
 * Uploaded logos are raster formats only (PNG/JPEG/WebP/ICO). SVG is deliberately refused because it can carry script.
 * The legal text shipped with the product is a draft and has **not** been reviewed by a lawyer. The admin console labels it so until an administrator publishes their own version.
 * Migrations `005`–`008` have been tested on the embedded Postgres engine only; they have not yet been applied to the production Supabase project.
+
+
+---
+
+# Engineering Task 04 — session lock, profile photo, logout confirmation
+
+| Area | Control | Verified by |
+| --- | --- | --- |
+| Lock after time away | The browser reports `away` (page hidden) and `back` (visible again); the **server** keeps `away_since`/`locked_at` on the session and, with its own clock, refuses every protected endpoint with `403 SESSION_LOCKED` once the user has been away for `AWAY_LOCK_SECONDS` (60). A stale or refreshed token is still bound to the locked session. | `backend/tests/session_lock.test.js` (10 tests) and a real-browser run with the limit set to 5 s |
+| Reauthentication | Password (plus the authenticator code when MFA is enabled; always for staff) or a passkey that belongs to the signed-in user. Failures are counted and audited; 5 wrong attempts end the session. Nothing is stored client-side except a timestamp. | `session_lock.test.js` |
+| Timers | Elapsed time is computed from timestamps when the page returns (browsers freeze background timers); a heartbeat while visible clears stray away markers left by other tabs; `BroadcastChannel` and the `SESSION_LOCKED` API response lock other tabs. | `frontend/src/test/security.test.jsx`, two-tab browser run |
+| Pending actions | Locking never submits or resubmits anything; open pages stay mounted (so unsaved text survives) but are hidden and inert behind the lock screen. | `security.test.jsx` |
+| Logout | A confirmation dialog precedes every user-initiated log out; the session is revoked server-side first, and if the server cannot be reached the user stays signed in with an honest message. Automatic locks/expiry do not show the dialog. | `security.test.jsx`, browser run |
+| Profile photo | New object stored first, database row switched in a transaction, old object removed only after commit; failures keep the old photo and remove the new object; the response returns the updated profile; the image URL carries a version token that changes with the photo. | `backend/tests/profile_photo.test.js` (7 tests), browser run |
+
+**Limitations**
+* "Away" means the page is hidden (tab/app switch, screen lock, minimise, close). Moving to another window while the tab stays visible, or sitting idle on the page, does not count. An ordinary idle timeout is a separate policy and has not been added.
+* If the browser never gets to send the `away` request (the tab is killed instantly), the lock is applied when the page next loads, using the stored timestamp, or on the first request after that.
+* Passkey unlock was tested only with a made-up assertion (rejected); a real authenticator was not available.
+* The public login page does not show customer photos (there is no remembered-account feature), so one customer's photo can never be shown to another.

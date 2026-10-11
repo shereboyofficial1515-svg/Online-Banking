@@ -24,6 +24,11 @@ Why a rewrite instead of calling Render directly: session cookies are `HttpOnly;
 * **Email:** to send from the new domain, verify `eastwesthub.site` in Resend and set `RESEND_FROM_EMAIL` / `SUPPORT_EMAIL` accordingly.
 * After changing `APP_URL`, redeploy the API, then redeploy the website.
 
+## Session lock after time away
+* Migration `010` must be applied before the new API is deployed (`npm run migrate`).
+* `AWAY_LOCK_SECONDS` (default `60`, minimum `5`) is how long a user may be away from the site before the session is locked on the server. `MAX_UNLOCK_FAILURES` (default `5`) wrong passwords end the session.
+* Profile photos are stored in the private Supabase bucket `profile-photos` (persistent). The API refuses to start in production without Supabase credentials, so uploads never fall back to Render's temporary disk.
+
 
 ## 1. Local development
 
@@ -55,9 +60,9 @@ cd frontend && npm run dev          # SPA on http://localhost:5173 (proxies /api
 ```
 **Tests.**
 ```bash
-cd backend  && npm test             # 183 tests, embedded Postgres, never reads .env
+cd backend  && npm test             # 193 tests, embedded Postgres, never reads .env
 cd backend  && npm run test:pg      # same suites through the production `pg` driver (1-connection pool)
-cd frontend && npm test             # 83 tests
+cd frontend && npm test             # 93 tests
 cd frontend && npm run build        # production build + automatic secret scan of the bundle
 ```
 

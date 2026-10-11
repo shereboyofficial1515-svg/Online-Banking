@@ -25,14 +25,15 @@ export function checkPhoto(file) {
  * The new photo is shown only after the server confirms the upload; until then the existing photo (or initials) stays.
  */
 export default function ProfileHeader() {
-  const { user, reload } = useAuth();
+  const { user, updateUser } = useAuth();
   const toast = useToast();
   const input = useRef(null);
   const [picked, setPicked] = useState(null); // { file, url }
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [version, setVersion] = useState(0);
   const [broken, setBroken] = useState(false);
+  const version = user.profilePhotoVersion;
+  useEffect(() => { setBroken(false); }, [version]);
 
   useEffect(() => () => { if (picked?.url) URL.revokeObjectURL(picked.url); }, [picked]);
 
@@ -48,19 +49,20 @@ export default function ProfileHeader() {
     setBusy(true); setError(null);
     try {
       const fd = new FormData(); fd.append('photo', picked.file);
-      await api.upload('/api/users/me/photo', fd);
-      await reload();
-      setBroken(false); setVersion((v) => v + 1); setPicked(null);
+      const r = await api.upload('/api/users/me/photo', fd);
+      if (!r?.user?.hasProfilePhoto) throw new Error('The photo could not be saved. Please try again.');
+      updateUser(r.user); // the confirmed profile from the server: header, sidebar and this page all read the same state
+      setPicked(null);
       toast.success('Profile photo updated.');
     } catch (ex) { setError(ex.message || 'The photo could not be uploaded. Please try again.'); } finally { setBusy(false); }
   };
 
-  const hasPhoto = user.hasProfilePhoto && !broken;
+  const hasPhoto = user.hasProfilePhoto && version && !broken;
   return (
     <section className="profile-head" aria-label="Profile summary">
       <div className="profile-id">
         <span className="profile-avatar" aria-hidden={hasPhoto ? undefined : true}>
-          {hasPhoto ? <img key={version} src={apiUrl(`/api/users/me/photo?v=${version}`)} alt={`Profile photo of ${user.firstName} ${user.lastName}`} onError={() => setBroken(true)} /> : initials(user)}
+          {hasPhoto ? <img src={apiUrl(`/api/users/me/photo?v=${encodeURIComponent(version)}`)} alt={`Profile photo of ${user.firstName} ${user.lastName}`} onError={() => setBroken(true)} /> : initials(user)}
         </span>
         <div className="profile-names">
           <h2>{user.firstName} {user.lastName}</h2>

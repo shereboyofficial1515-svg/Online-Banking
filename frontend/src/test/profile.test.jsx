@@ -4,9 +4,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const store = { upload: vi.fn(), reload: vi.fn(), user: { id: 'u1', firstName: 'Avery', lastName: 'Morgan', email: 'avery.morgan.with.a.very.long.address@example-company-name.test', createdAt: '2026-01-01T00:00:00Z', hasProfilePhoto: false } };
+const store = { upload: vi.fn(), reload: vi.fn(), updateUser: vi.fn(), user: { id: 'u1', firstName: 'Avery', lastName: 'Morgan', email: 'avery.morgan.with.a.very.long.address@example-company-name.test', createdAt: '2026-01-01T00:00:00Z', hasProfilePhoto: false } };
 vi.mock('../lib/api.js', async (orig) => ({ ...(await orig()), api: { upload: (...a) => store.upload(...a), get: vi.fn(), post: vi.fn() } }));
-vi.mock('../lib/auth.jsx', () => ({ useAuth: () => ({ user: store.user, reload: store.reload }) }));
+vi.mock('../lib/auth.jsx', () => ({ useAuth: () => ({ user: store.user, reload: store.reload, updateUser: store.updateUser }) }));
 
 const { default: ProfileHeader, checkPhoto } = await import('../components/ProfileHeader.jsx');
 const { ToastProvider } = await import('../components/ui/Toast.jsx');
@@ -16,7 +16,7 @@ const file = (name, type, size = 1000) => new File([new Uint8Array(size)], name,
 const pick = (f) => fireEvent.change(screen.getByLabelText('Choose a profile photo'), { target: { files: [f] } });
 
 beforeEach(() => {
-  store.upload.mockReset(); store.reload.mockReset(); store.user.hasProfilePhoto = false;
+  store.upload.mockReset(); store.reload.mockReset(); store.updateUser.mockReset(); store.user.hasProfilePhoto = false;
   URL.createObjectURL = vi.fn(() => 'blob:preview'); URL.revokeObjectURL = vi.fn();
 });
 
@@ -68,9 +68,9 @@ describe('profile header', () => {
     expect(screen.getByRole('button', { name: /Save photo/ })).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText('Profile photo updated.')).toBeNull(); // not yet
     store.user.hasProfilePhoto = true;
-    finish({ ok: true });
+    finish({ ok: true, user: { hasProfilePhoto: true, profilePhotoVersion: 'v2' } });
     expect(await screen.findByText('Profile photo updated.')).toBeInTheDocument();
-    expect(store.reload).toHaveBeenCalled();
+    expect(store.updateUser).toHaveBeenCalledWith({ hasProfilePhoto: true, profilePhotoVersion: 'v2' }); // shared profile updated from the server's answer
     expect(store.upload).toHaveBeenCalledWith('/api/users/me/photo', expect.any(FormData));
   });
 
@@ -82,7 +82,17 @@ describe('profile header', () => {
     expect(await screen.findByText('Profile photos must be JPEG, PNG or WebP images.')).toBeInTheDocument();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByText('Profile photo updated.')).toBeNull();
-    expect(store.reload).not.toHaveBeenCalled();
+    expect(store.updateUser).not.toHaveBeenCalled();
+  });
+
+  it('does not claim success if the server answers without a saved photo', async () => {
+    store.upload.mockResolvedValue({ ok: true });
+    mount();
+    pick(file('me.png', 'image/png'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save photo' }));
+    expect(await screen.findByText(/could not be saved/)).toBeInTheDocument();
+    expect(screen.queryByText('Profile photo updated.')).toBeNull();
+    expect(store.updateUser).not.toHaveBeenCalled();
   });
 });
 

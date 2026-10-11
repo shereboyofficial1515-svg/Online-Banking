@@ -5,6 +5,7 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { AuthProvider } from './lib/auth.jsx';
 import { SiteProvider } from './lib/site.jsx';
+import SecurityLock from './lib/lock.jsx';
 import { PreferencesProvider } from './lib/PreferencesProvider.jsx';
 import { ToastProvider } from './components/ui/Toast.jsx';
 import './styles/tokens.css';
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')).render(
           <SiteProvider>
             <AuthProvider>
               <PreferencesProvider>
-                <App />
+                <SecurityLock>
+                  <App />
+                </SecurityLock>
               </PreferencesProvider>
             </AuthProvider>
           </SiteProvider>

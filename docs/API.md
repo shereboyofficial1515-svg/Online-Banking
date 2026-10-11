@@ -14,6 +14,7 @@ Statuses: 400 bad request · 401 unauthenticated · 403 forbidden (incl. `CSRF_I
 
 ## Public / auth — `/api/auth`
 `GET csrf` · `GET config` · `GET session` · `POST register` · `POST verify-email` (`{ email, code }`, 6-digit emailed code: valid 15 min, 5 attempts, per-address resend cooldown) · `POST resend-verification` ·
+`POST away` / `POST back` / `POST lock` (report that the page was hidden / is visible again / should be locked; the server keeps the clock) · `POST unlock` (`{ password, code? }`) · `POST unlock/passkey/options|verify` (these are the only endpoints, besides `GET session` and `POST logout`, that a locked session can reach; everything else returns `403 SESSION_LOCKED`) ·
 `POST login` (→ `mfaRequired` + `mfaToken`) · `POST login/mfa` · `POST refresh` · `POST logout` · `GET me` ·
 `POST forgot-password` · `POST reset-password` · `POST passkey/options` · `POST passkey/verify`
 

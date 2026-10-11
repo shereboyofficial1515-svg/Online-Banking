@@ -60,6 +60,9 @@ export function toPublic(u) {
     verificationStatus: u.verification_status,
     mfaEnabled: u.mfa_enabled,
     hasProfilePhoto: !!u.profile_photo_path,
+    // Changes whenever the photo changes (it is the random object name, not the storage path); the client puts it in the image
+    // URL so a new photo is never masked by a cached old one and an unchanged photo stays cached.
+    profilePhotoVersion: u.profile_photo_path ? String(u.profile_photo_path).split('/').pop().replace(/\.[a-z]+$/i, '') : null,
     passwordChangedAt: u.password_changed_at,
     lastLoginAt: u.last_login_at,
     createdAt: u.created_at,

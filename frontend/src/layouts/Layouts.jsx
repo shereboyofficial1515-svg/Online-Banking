@@ -56,10 +56,11 @@ const adminItems = [
 ];
 
 export function Gate({ children, staff = false }) {
-  const { loading, user, mfaEnrollmentRequired, unreachable, reload } = useAuth();
+  const { loading, user, mfaEnrollmentRequired, unreachable, reload, locked } = useAuth();
   const loc = useLocation();
   if (loading) return <div style={{ maxWidth: 560, margin: '20vh auto', padding: 16 }}><SkeletonCard lines={3} /></div>;
   if (unreachable) return <div style={{ maxWidth: 560, margin: '16vh auto', padding: 16 }}><ErrorState error={unreachable} onRetry={reload} /></div>;
+  if (locked && !user) return null; // the lock screen is showing; never redirect a locked session to the login page
   if (!user) return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
   if (staff && !user.isStaff) return <Navigate to="/app" replace />;
   if (!staff && user.isStaff) return <Navigate to="/admin" replace />;
