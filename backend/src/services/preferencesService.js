@@ -1,7 +1,7 @@
 import { getDb } from '../db/index.js';
 import { validationError } from '../utils/errors.js';
 
-export const LANGUAGES = ['en']; // only languages whose interface translations actually exist are offered
+export const LANGUAGES = ['en', 'fr', 'es', 'pt', 'de', 'ar', 'hi']; // only languages whose interface translations actually exist are offered
 
 export const DEFAULT_DASHBOARD = { showChart: true, showMoneyInOut: true, showRecent: true, showSecurity: true, defaultAccountId: null };
 export const DEFAULTS = {

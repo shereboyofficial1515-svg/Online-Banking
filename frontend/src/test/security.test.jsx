@@ -6,6 +6,7 @@ const calls = [];
 const state = { locked: false, unlockOk: true, session: null };
 const USER = { id: 'u1', firstName: 'Avery', lastName: 'Morgan', email: 'a@example.test', hasProfilePhoto: true, profilePhotoVersion: 'abc123', mfaEnabled: false, isStaff: false };
 
+vi.mock('../lib/PreferencesProvider.jsx', async () => { const i = await import('../lib/i18n.js'); return { usePrefs: () => ({ t: i.t, prefs: { language: 'en', theme: 'system' }, save: async () => {}, setTheme: () => {} }) }; });
 vi.mock('../lib/api.js', async (orig) => {
   const real = await orig();
   const respond = (method, path, body) => {

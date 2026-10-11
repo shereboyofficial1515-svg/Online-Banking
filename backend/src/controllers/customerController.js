@@ -1,5 +1,6 @@
 // HTTP adapters for the customer-facing APIs. Each handler takes identity ONLY from req.auth (the verified
 // session) - ids in URLs/bodies are treated as lookup keys that must resolve to something the user owns.
+import * as features from '../services/featureService.js';
 import * as settings from '../services/settingsService.js';
 import * as legal from '../services/legalService.js';
 import * as users from '../repositories/users.js';
@@ -112,3 +113,5 @@ export const sendFeedback = h(async (req, res) => {
   const label = { suggestion: 'Suggestion', problem: 'Problem report', compliment: 'Compliment' }[req.body.kind];
   res.status(201).json({ ticket: await support.create(req.ctx, { category: 'other', subject: `Feedback: ${label}`, message: req.body.message }, []) });
 });
+
+export const featureStatus = h(async (req, res) => res.json({ savings: { enabled: await features.isSavingsEnabled() } }));

@@ -21,7 +21,7 @@ Statuses: 400 bad request · 401 unauthenticated · 403 forbidden (incl. `CSRF_I
 ## Customer
 | Area | Endpoints |
 |---|---|
-| `/users` | `GET/PATCH me` (changing the phone number needs `currentPassword`), `POST/GET me/photo`, `GET/PUT me/preferences` (theme, text size, contrast, motion, language, timezone, date/time/number formats, dashboard), `POST me/email-change` (`{ newEmail, password }` → code sent to the new address) and `POST me/email-change/confirm` (`{ code }`), `POST me/feedback`, `GET me/legal-acceptances` |
+| `/users` | `GET/PATCH me` (a phone number is mandatory at registration: send an international number and optionally `phoneCountry`; it is validated per country and stored as E.164; changing it needs `currentPassword`), `POST/GET me/photo`, `GET/PUT me/preferences` (theme, text size, contrast, motion, language, timezone, date/time/number formats, dashboard), `POST me/email-change` (`{ newEmail, password }` → code sent to the new address) and `POST me/email-change/confirm` (`{ code }`), `POST me/feedback`, `GET me/legal-acceptances` |
 | `/accounts` | `GET /`, `POST /` (open extra), `GET /:id`, `PATCH /:id` (`{ name }`), `GET /:id/summary` (chart data), `GET|POST|DELETE /:id/closure` (request / cancel closing an account; needs password; balance must be zero) |
 | `/transactions` | `GET /` (q, type, status, from, to, accountId, limit, offset), `GET /:id`, `POST /transfers` (needs `idempotencyKey`) |
 | `/withdrawals` | `GET /`, `POST /` (the server alone chooses the status: `additional_verification_required` if identity is not verified, `under_review` if the account is under security review, otherwise `requested`; the response carries a status-specific `customerMessage`), `GET /:id`, `POST /:id/cancel` |
@@ -29,6 +29,9 @@ Statuses: 400 bad request · 401 unauthenticated · 403 forbidden (incl. `CSRF_I
 | `/notifications` | `GET /`, `POST /:id/read`, `POST read-all`, `GET/PUT preferences` |
 | `/support` | `GET /`, `POST /` (multipart), `GET /:id`, `POST /:id/replies`, `POST /:id/close`, `GET attachments/:id` |
 | `/security` | `GET overview`, `POST password`, `POST mfa/setup|enable|disable|recovery-codes`, passkeys `GET /passkeys`, `POST passkeys/options|register`, `PATCH|DELETE passkeys/:id`, `POST sessions/revoke-others`, `DELETE sessions/:id`, `DELETE devices/:id` |
+
+## Feature switches
+`GET /api/features` (signed in) → `{ savings: { enabled } }`. While savings is disabled, `POST /api/accounts` with `type: savings` and transfers whose destination is a savings account return `403 SAVINGS_UNAVAILABLE` with the message "Savings is not available at the moment. Please check back later for updates." Management: `GET|PUT /api/admin/features/savings` (`features.manage`, Super Admin; PUT body `{ enabled, reason }`, audited).
 
 ## Public website content (no login)
 `GET /api/public/site` (published branding + content; falls back to built-in defaults) · `GET /api/public/assets/:id` (image, only while referenced by the published site) · `GET /api/public/legal` · `GET /api/public/legal/:slug` (`terms|privacy|cookies|security|accessibility`). Responses use `Cache-Control: public, no-cache` so a publish is visible immediately.

@@ -1,3 +1,4 @@
+import { isRtl } from './i18n.js';
 // Display / accessibility / regional preferences: defaults, local storage and applying them to the document.
 // Local storage is the preference store for signed-out visitors and a fast cache for signed-in customers (whose
 // authoritative copy lives on the server and follows them across devices).
@@ -32,6 +33,7 @@ export function applyPrefsToDocument(prefs, root = document.documentElement) {
   set('data-contrast', prefs.contrast === 'high', 'high');
   set('data-motion', prefs.motion === 'reduce', 'reduce');
   root.setAttribute('lang', prefs.language || 'en');
+  root.setAttribute('dir', isRtl(prefs.language) ? 'rtl' : 'ltr'); // right-to-left languages mirror the layout (see the [dir="rtl"] rules in layout.css)
 }
 
 export const FORMAT_KEYS = ['timezone', 'dateFormat', 'timeFormat', 'numberFormat', 'currencyDisplay', 'language'];

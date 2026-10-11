@@ -40,10 +40,13 @@ export function client(app) {
   };
 }
 
+/** A valid, unique Nigerian mobile number (E.164). Tests need real numbers because the API validates them per country. */
+let phoneSeq = Math.floor(Math.random() * 1_000_000);
+export const uniquePhone = () => `+234803${String(1_000_000 + ((phoneSeq++ * 7919) % 8_999_999)).slice(0, 7)}`;
 export const uniqueEmail = (p = 'user') => `${p}${Date.now()}${seq++}@example.test`;
 
 export const registrationBody = (over = {}) => ({
-  email: uniqueEmail(), password: PASSWORD, firstName: 'Taylor', lastName: 'Reed', phone: '+1 555 010 0199', dateOfBirth: '1990-05-17',
+  email: uniqueEmail(), password: PASSWORD, firstName: 'Taylor', lastName: 'Reed', phone: uniquePhone(), dateOfBirth: '1990-05-17',
   addressLine1: '12 Harbor Road', city: 'Boston', state: 'MA', postalCode: '02110', country: 'US', acceptedTerms: true, ...over,
 });
 

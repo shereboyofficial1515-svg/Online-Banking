@@ -46,7 +46,7 @@ describe('a normal user can never...', () => {
 
   test('modify their balance or role through any user-facing endpoint', async () => {
     const before = await db.query('SELECT role, status, verification_status, email_verified_at FROM users WHERE id=$1', [alice.user.id]);
-    const patch = await ac.patch('/api/users/me', { phone: '+1 555 010 0000', currentPassword: PASSWORD, role: 'super_admin', status: 'active', verificationStatus: 'verified', balance: 999999, mfaEnabled: false });
+    const patch = await ac.patch('/api/users/me', { phone: '+2348031230000', currentPassword: PASSWORD, role: 'super_admin', status: 'active', verificationStatus: 'verified', balance: 999999, mfaEnabled: false });
     assert.equal(patch.status, 200);
     const after = await db.query('SELECT role, status, verification_status, email_verified_at FROM users WHERE id=$1', [alice.user.id]);
     assert.deepEqual(after.rows[0], before.rows[0]);
@@ -59,7 +59,7 @@ describe('a normal user can never...', () => {
     assert.equal((await L.balances(db, alice.accountId)).ledger, 50000);
     assert.equal((await ac.put(`/api/accounts/${alice.accountId}`, { balance: 1e9 })).status, 404);
     assert.equal((await ac.post('/api/transactions', { amount: '100', type: 'ledger_credit' })).status, 404);
-    const acct = await ac.post('/api/accounts', { type: 'savings', balance: 1e9, status: 'active', currency: 'EUR' });
+    const acct = await ac.post('/api/accounts', { type: 'checking', balance: 1e9, status: 'active', currency: 'EUR' });
     assert.ok([201, 409].includes(acct.status));
     assert.equal((await L.balances(db, alice.accountId)).ledger, 50000);
   });

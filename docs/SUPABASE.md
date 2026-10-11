@@ -17,6 +17,7 @@ with the service-role key (server only). Authentication is the application's own
    * `007_site_content.sql` – website versions, uploaded assets, legal documents + acceptances, immutability triggers and the private `site-assets` bucket (see [WEBSITE_CMS.md](WEBSITE_CMS.md));
    * `008_account_settings.sql` – verified email-change requests and the account-closure workflow;
    * `009_account_security_review.sql` – account-level "additional security review" marker used by the withdrawal workflow;
+   * `011_phone_and_features.sql` – normalised `phone_e164` (unique) and the `app_settings` table (savings starts disabled);
    * `010_session_lock.sql` – server-side away tracking and session lock (`away_since`, `locked_at`, `unlock_failures` on `sessions`).
 4. **Keys**: `SUPABASE_SERVICE_ROLE_KEY` bypasses RLS — keep it in the server environment only. The frontend bundle
    contains no keys (verify with `grep -r service_role frontend/dist`). Rotate if it ever leaks.

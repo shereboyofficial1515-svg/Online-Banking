@@ -1,3 +1,4 @@
+import { normalizePhone } from '../utils/phone.js';
 import { z } from 'zod';
 import { CATEGORIES } from '../services/notificationService.js';
 import { STAFF_ROLES } from '../config/permissions.js';
@@ -9,6 +10,10 @@ export const uuid = z.uuid('Invalid identifier.');
 const money = z.union([z.string(), z.number()]).transform(String).pipe(z.string().regex(/^\d{1,12}(\.\d{1,2})?$/, 'Enter a valid amount with at most two decimal places.'));
 const code6 = z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.');
 const email = z.string().trim().toLowerCase().max(254).pipe(z.email('Enter a valid email address.'));
+/** Mandatory international phone number: validated per country by libphonenumber-js and turned into E.164 before it reaches a service. */
+const phoneField = z.string({ error: 'Enter your phone number.' }).trim().min(1, 'Enter your phone number.')
+  .refine((v) => !!normalizePhone(v), 'Enter a valid phone number for the selected country, including the country code.')
+  .transform((v) => normalizePhone(v).e164);
 const password = z.string().min(1, 'Password is required.').max(128, 'Password is too long.');
 
 const dob = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use the format YYYY-MM-DD.').refine((s) => {
@@ -24,7 +29,8 @@ export const registerSchema = z.object({
   password,
   firstName: name('First name'),
   lastName: name('Last name'),
-  phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number.'),
+  phone: phoneField,
+  phoneCountry: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).optional(),
   dateOfBirth: dob,
   addressLine1: trimmed(3, 120, 'Address'),
   city: trimmed(1, 80, 'City'),
@@ -73,7 +79,8 @@ export const displayPreferencesSchema = z.object({
 
 // ───────── profile / accounts ─────────
 export const profileSchema = z.object({
-  phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number.').optional(),
+  phone: phoneField.optional(),
+  phoneCountry: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).optional(),
   addressLine1: trimmed(3, 120, 'Address').optional(),
   city: trimmed(1, 80, 'City').optional(),
   state: trimmed(1, 80, 'State').optional(),
@@ -86,6 +93,7 @@ export const emailChangeRequestSchema = z.object({ newEmail: z.string().trim().t
 export const emailChangeConfirmSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code.') });
 export const closureRequestSchema = z.object({ reason: z.string().trim().max(500).optional(), password });
 export const closureDecisionSchema = z.object({ decision: z.enum(['complete', 'decline']), note: z.string().trim().max(500).optional() });
+export const featureToggleSchema = z.object({ enabled: z.boolean(), reason: z.string().trim().min(5, 'Enter a reason of at least 5 characters.').max(300) });
 export const unlockSchema = z.object({ password: password, code: z.string().trim().max(32).optional() });
 export const unlockPasskeySchema = z.object({ response: z.record(z.string(), z.any()) });
 export const securityReviewSchema = z.object({ enabled: z.boolean(), reason: z.string().trim().min(5, 'Enter a reason of at least 5 characters.').max(500) });

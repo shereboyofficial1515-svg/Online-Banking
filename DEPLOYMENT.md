@@ -24,6 +24,13 @@ Why a rewrite instead of calling Render directly: session cookies are `HttpOnly;
 * **Email:** to send from the new domain, verify `eastwesthub.site` in Resend and set `RESEND_FROM_EMAIL` / `SUPPORT_EMAIL` accordingly.
 * After changing `APP_URL`, redeploy the API, then redeploy the website.
 
+## Phone numbers, languages and savings (migration `011`)
+* Apply `011` first (`npm run migrate`), then deploy API and website together: the registration form now sends an international number and the API requires it.
+* Existing customers are not changed. Optionally run `node src/db/backfillPhones.js` (dry run) and then `--apply` to normalise legacy numbers that are already valid international numbers; everyone else is asked to add one in the app.
+* **SMS verification needs a provider and credentials that are not configured** (see `docs/I18N.md`). Until then numbers stay unverified.
+* Savings is **disabled by default** (no row in `app_settings`). A Super Admin enables it under **Admin → Features**; no redeploy is needed.
+* Translations ship inside the website bundle (`frontend/src/locales`); no new environment variable is required. New runtime dependency: `libphonenumber-js` (backend and frontend).
+
 ## Session lock after time away
 * Migration `010` must be applied before the new API is deployed (`npm run migrate`).
 * `AWAY_LOCK_SECONDS` (default `60`, minimum `5`) is how long a user may be away from the site before the session is locked on the server. `MAX_UNLOCK_FAILURES` (default `5`) wrong passwords end the session.
@@ -60,9 +67,9 @@ cd frontend && npm run dev          # SPA on http://localhost:5173 (proxies /api
 ```
 **Tests.**
 ```bash
-cd backend  && npm test             # 193 tests, embedded Postgres, never reads .env
+cd backend  && npm test             # 1105 tests, embedded Postgres, never reads .env
 cd backend  && npm run test:pg      # same suites through the production `pg` driver (1-connection pool)
-cd frontend && npm test             # 93 tests
+cd frontend && npm test             # 105 tests
 cd frontend && npm run build        # production build + automatic secret scan of the bundle
 ```
 

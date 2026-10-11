@@ -4,6 +4,7 @@ import * as L from '../repositories/ledger.js';
 import * as audit from './auditService.js';
 import { conflict, notFound } from '../utils/errors.js';
 import { mask } from './ledgerService.js';
+import { assertSavingsEnabled } from './featureService.js';
 
 export const accountDto = (a, b) => ({
   id: a.id,
@@ -38,6 +39,7 @@ export async function getOwned(userId, accountId) {
 }
 
 export async function openAdditional(ctx, { type, name }) {
+  if (type === 'savings') await assertSavingsEnabled(); // management controls when savings becomes available
   const db = getDb();
   const userId = ctx.actor.id;
   return db.tx(async (t) => {

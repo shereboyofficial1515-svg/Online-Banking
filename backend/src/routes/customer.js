@@ -23,6 +23,10 @@ users.post('/me/email-change/confirm', sensitiveLimiter, validate(v.emailChangeC
 users.post('/me/feedback', sensitiveLimiter, validate(v.feedbackSchema), c.sendFeedback);
 users.put('/me/preferences', validate(v.displayPreferencesSchema), c.saveDisplayPreferences);
 
+export const featuresRouter = mk();
+featuresRouter.use(requireAuth());
+featuresRouter.get('/', c.featureStatus);
+
 export const accounts = mk();
 accounts.use(guard);
 accounts.get('/', c.listAccounts);

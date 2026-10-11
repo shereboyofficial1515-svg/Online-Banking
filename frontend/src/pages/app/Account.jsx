@@ -4,6 +4,8 @@ import { Button, Field, Input, PasswordInput, Tabs } from '../../components/ui/C
 import { Alert, Badge, Card, EmptyState, ErrorState, KeyValue, PageHeader, SkeletonCard, SkeletonRows } from '../../components/ui/Feedback.jsx';
 import Icon from '../../components/ui/Icon.jsx';
 import ProfileHeader from '../../components/ProfileHeader.jsx';
+import PhoneInput, { phoneProblem } from '../../components/PhoneInput.jsx';
+import { usePrefs } from '../../lib/PreferencesProvider.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../lib/auth.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
@@ -15,16 +17,22 @@ export function Profile() {
   useDocumentTitle('Profile');
   const { user, reload } = useAuth();
   const toast = useToast();
+  const { t } = usePrefs();
   const [pw, setPw] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState('');
   const [f, setF] = useState({ phone: user.phone || '', addressLine1: user.address.line1 || '', city: user.address.city || '', state: user.address.state || '', postalCode: user.address.postalCode || '', country: user.address.country || '' });
   const [fe, setFe] = useState({});
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const phoneChanged = (f.phone || '') !== (user.phone || '');
+  const needsPhone = user.phoneRequired;
 
   const save = async (e) => {
-    e.preventDefault(); setBusy(true); setFe({});
-    try { await api.patch('/api/users/me', phoneChanged ? { ...f, currentPassword: pw } : f); await reload(); setPw(''); toast.success('Profile updated.'); }
+    e.preventDefault(); setFe({});
+    if (phoneChanged || needsPhone) { const pp = phoneProblem(f.phone, phoneCountry || undefined); if (pp) { setFe({ phone: t(pp) }); return; } }
+    setBusy(true);
+    const { phone, ...rest } = f;
+    try { await api.patch('/api/users/me', phoneChanged || needsPhone ? { ...rest, phone, phoneCountry: phoneCountry || undefined, currentPassword: pw } : rest); await reload(); setPw(''); toast.success('Profile updated.'); }
     catch (ex) { setFe(fieldErrors(ex)); toast.error(ex.message); } finally { setBusy(false); }
   };
   return (
@@ -44,8 +52,8 @@ export function Profile() {
       <Card title="Contact and address">
         <form onSubmit={save} noValidate>
           <div className="form-grid">
-            <Field label="Phone number" error={fe.phone} hint={user.phoneVerified ? 'Verified' : 'Changing your number marks it as unverified.'}>{(p) => <Input {...p} type="tel" autoComplete="tel" value={f.phone} onChange={set('phone')} />}</Field>
-            {phoneChanged && <Field label="Current password" error={fe.currentPassword} hint="Required to change your phone number." required>{(p) => <PasswordInput {...p} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} />}</Field>}
+            <Field label={t('phone.label')} error={fe.phone} hint={user.phoneVerified ? 'Verified' : 'Entering a number does not verify it. Changing your number needs your current password.'} className="span-2">{(p) => <PhoneInput id={p.id} describedBy={p['aria-describedby']} invalid={!!fe.phone} value={f.phone} country={phoneCountry} onChange={(v, c) => { setF((cur) => ({ ...cur, phone: v })); setPhoneCountry(c); }} />}</Field>
+            {(phoneChanged || needsPhone) && <Field label="Current password" error={fe.currentPassword} hint="Required to change your phone number." required>{(p) => <PasswordInput {...p} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} />}</Field>}
             <Field label="Street address" error={fe.addressLine1}>{(p) => <Input {...p} autoComplete="address-line1" value={f.addressLine1} onChange={set('addressLine1')} />}</Field>
             <Field label="City" error={fe.city}>{(p) => <Input {...p} autoComplete="address-level2" value={f.city} onChange={set('city')} />}</Field>
             <Field label="State / region" error={fe.state}>{(p) => <Input {...p} autoComplete="address-level1" value={f.state} onChange={set('state')} />}</Field>

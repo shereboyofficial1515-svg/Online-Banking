@@ -11,6 +11,8 @@ const Overview = lazy(() => import('./pages/app/Overview.jsx'));
 const Accounts = lazy(() => import('./pages/app/Overview.jsx').then((m) => ({ default: m.Accounts })));
 const Transactions = lazy(() => import('./pages/app/Transactions.jsx').then((m) => ({ default: m.Transactions })));
 const TransactionDetail = lazy(() => import('./pages/app/Transactions.jsx').then((m) => ({ default: m.TransactionDetail })));
+const TH = (n) => lazy(() => import('./pages/app/TransferHub.jsx').then((m) => ({ default: m[n] })));
+const TransferHub = TH('TransferHub'); const BankTransfer = TH('BankTransfer'); const SavePage = TH('SavePage');
 const Transfers = lazy(() => import('./pages/app/Money.jsx').then((m) => ({ default: m.Transfers })));
 const Withdrawals = lazy(() => import('./pages/app/Money.jsx').then((m) => ({ default: m.Withdrawals })));
 const Verification = lazy(() => import('./pages/app/Account.jsx').then((m) => ({ default: m.Verification })));
@@ -33,6 +35,7 @@ const AdminWithdrawals = O('AdminWithdrawals'); const AdminWithdrawalDetail = O(
 const AdminVerification = R('AdminVerification'); const AdminVerificationDetail = R('AdminVerificationDetail'); const AdminSupport = R('AdminSupport');
 const W = (n) => lazy(() => import('./pages/admin/Website.jsx').then((m) => ({ default: m[n] })));
 const AdminWebsite = W('AdminWebsite'); const AdminLegal = W('AdminLegal'); const AdminLegalEditor = W('AdminLegalEditor');
+const AdminFeatures = lazy(() => import('./pages/admin/Features.jsx').then((m) => ({ default: m.AdminFeatures })));
 const AdminClosures = lazy(() => import('./pages/admin/Closures.jsx').then((m) => ({ default: m.AdminClosures })));
 const AdminTicket = R('AdminTicket'); const AdminSecurity = R('AdminSecurity'); const AdminAudit = R('AdminAudit'); const AdminStaff = R('AdminStaff');
 
@@ -63,7 +66,10 @@ export default function App() {
           <Route path="accounts" element={<Accounts />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="transactions/:id" element={<TransactionDetail />} />
-          <Route path="transfers" element={<Transfers />} />
+          <Route path="transfers" element={<TransferHub />} />
+          <Route path="transfers/ewb" element={<Transfers />} />
+          <Route path="transfers/bank" element={<BankTransfer />} />
+          <Route path="transfers/save" element={<SavePage />} />
           <Route path="withdrawals" element={<Withdrawals />} />
           <Route path="profile" element={<Navigate to="/app/settings/profile" replace />} />
           <Route path="verification" element={<Verification />} />
@@ -105,6 +111,7 @@ export default function App() {
           <Route path="security" element={<AdminSecurity />} />
           <Route path="audit" element={<AdminAudit />} />
           <Route path="staff" element={<AdminStaff />} />
+          <Route path="features" element={<AdminFeatures />} />
           <Route path="closures" element={<AdminClosures />} />
           <Route path="website" element={<AdminWebsite />} />
           <Route path="legal" element={<AdminLegal />} />

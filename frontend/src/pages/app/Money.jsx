@@ -7,6 +7,8 @@ import { useToast } from '../../components/ui/Toast.jsx';
 import { useApi, useDocumentTitle } from '../../lib/hooks.js';
 import { api, fieldErrors } from '../../lib/api.js';
 import { dateTime, money, uuid } from '../../lib/format.js';
+import { usePrefs } from '../../lib/PreferencesProvider.jsx';
+import Icon from '../../components/ui/Icon.jsx';
 
 const toMinor = (s) => Math.round(parseFloat(s) * 100);
 
@@ -17,8 +19,11 @@ function useAccounts() {
   return { ...r, list, activeList: list.filter((a) => a.status === 'active') };
 }
 
-export function Transfers() {
-  useDocumentTitle('Transfers');
+/** Transfer form. mode "ewb": to another EWB account by number. mode "save": from the customer's own account into one of their own savings accounts. */
+export function Transfers({ mode = 'ewb', savingsAccounts = [] }) {
+  const { t } = usePrefs();
+  const saving = mode === 'save';
+  useDocumentTitle(saving ? t('save.title') : t('transfer.ewb'));
   const toast = useToast();
   const acc = useAccounts();
   const ver = useApi('/api/verification/status');
@@ -32,12 +37,14 @@ export function Transfers() {
   if (acc.loading || ver.loading) return <SkeletonCard lines={5} />;
   if (acc.error) return <ErrorState error={acc.error} onRetry={acc.refetch} />;
   const verified = ver.data?.status === 'verified';
-  const from = acc.list.find((a) => a.id === (f.fromAccountId || acc.activeList[0]?.id));
+  const sources = saving ? acc.activeList.filter((a) => a.type !== 'savings') : acc.activeList;
+  const from = sources.find((a) => a.id === (f.fromAccountId || sources[0]?.id));
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const validate = () => {
     const e = {};
-    if (!/^EWB\d{10}$/i.test(f.toAccountNumber.trim())) e.toAccountNumber = 'Enter a valid EWB account number (EWB followed by 10 digits).';
+    // New accounts are 12 digits starting with 605; older EWB + 10 digit numbers still work. The server is the authority.
+    if (!/^(605\d{9}|EWB\d{10})$/i.test(f.toAccountNumber.trim())) e.toAccountNumber = t('transfer.err.recipient');
     if (!/^\d{1,9}(\.\d{1,2})?$/.test(f.amount) || toMinor(f.amount) <= 0) e.amount = 'Enter an amount greater than zero with at most two decimals.';
     else if (from && toMinor(f.amount) > from.availableBalance) e.amount = `Amount exceeds your available balance of ${money(from.availableBalance, from.currency)}.`;
     return e;
@@ -65,20 +72,29 @@ export function Transfers() {
 
   return (
     <div className="stack" style={{ maxWidth: 640 }}>
-      <PageHeader title="Transfers" subtitle="Send money to another EWB account instantly." />
+      <Link to="/app/transfers" className="settings-back"><Icon name="chevron-left" size={16} /> {t('transfer.all')}</Link>
+      <PageHeader title={saving ? t('save.title') : t('transfer.ewb')} subtitle={saving ? t('save.intro') : t('transfer.ewb.desc')} />
       {!verified && <Alert tone="warning" title="Identity verification required" action={<Button size="sm" to="/app/verification">Verify now</Button>}>You need to verify your identity before making transfers.</Alert>}
       {!acc.activeList.length && <Alert tone="info" title="No active account">Transfers are available once your account is approved and active.</Alert>}
       {err && <Alert tone="danger">{err.message}</Alert>}
       <Card>
         <form onSubmit={toReview} noValidate>
-          <Field label="From account" error={fe.fromAccountId} required>{(p) => (
+          <Field label={t('transfer.from')} error={fe.fromAccountId} required>{(p) => (
             <Select {...p} value={from?.id || ''} onChange={set('fromAccountId')} disabled={!acc.activeList.length}>
-              {acc.activeList.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.accountNumber.slice(-4)}) — {money(a.availableBalance, a.currency)} available</option>)}
+              {sources.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.accountNumber.slice(-4)}) — {money(a.availableBalance, a.currency)} available</option>)}
             </Select>)}</Field>
-          <Field label="Recipient account number" error={fe.toAccountNumber} hint="For example EWB1234567890" required>{(p) => <Input {...p} autoComplete="off" inputMode="text" autoCapitalize="characters" value={f.toAccountNumber} onChange={set('toAccountNumber')} />}</Field>
-          <Field label={`Amount (${from?.currency ?? 'USD'})`} error={fe.amount} required>{(p) => <Input {...p} inputMode="decimal" autoComplete="off" placeholder="0.00" value={f.amount} onChange={set('amount')} />}</Field>
-          <Field label="Description (optional)" error={fe.description}>{(p) => <Input {...p} maxLength={140} value={f.description} onChange={set('description')} />}</Field>
-          <Button type="submit" size="lg" icon="send" disabled={!verified || !from} style={{ width: '100%' }}>Review transfer</Button>
+          {saving ? (
+            <Field label={t('save.to')} error={fe.toAccountNumber} required>{(p) => (
+              <Select {...p} value={f.toAccountNumber} onChange={set('toAccountNumber')}>
+                <option value="">—</option>
+                {savingsAccounts.map((a) => <option key={a.id} value={a.accountNumber}>{a.name} ({a.accountNumber.slice(-4)})</option>)}
+              </Select>)}</Field>
+          ) : (
+            <Field label={t('transfer.to')} error={fe.toAccountNumber} hint={t('transfer.to.hint')} required>{(p) => <Input {...p} dir="ltr" autoComplete="off" inputMode="text" autoCapitalize="characters" value={f.toAccountNumber} onChange={set('toAccountNumber')} />}</Field>
+          )}
+          <Field label={`${t('transfer.amount')} (${from?.currency ?? 'USD'})`} error={fe.amount} required>{(p) => <Input {...p} inputMode="decimal" autoComplete="off" placeholder="0.00" value={f.amount} onChange={set('amount')} />}</Field>
+          <Field label={t('transfer.description')} error={fe.description}>{(p) => <Input {...p} maxLength={140} value={f.description} onChange={set('description')} />}</Field>
+          <Button type="submit" size="lg" icon="send" disabled={!verified || !from} style={{ width: '100%' }}>{saving ? t('save.move') : t('transfer.review')}</Button>
         </form>
       </Card>
       <ConfirmDialog open={review} onClose={() => setReview(false)} onConfirm={submit} title="Confirm transfer" confirmLabel="Send transfer">

@@ -42,7 +42,7 @@ export default function Overview() {
   useDocumentTitle('Overview');
   const { user } = useAuth();
   const accounts = useApi('/api/accounts');
-  const { prefs } = usePrefs();
+  const { prefs, t } = usePrefs();
   const dash = prefs.dashboard;
   const primary = accounts.data?.accounts?.find((a) => a.id === dash.defaultAccountId) || accounts.data?.accounts?.[0]; // the customer's chosen default account first
   const summary = useApi(primary ? `/api/accounts/${primary.id}/summary` : null, null, { enabled: !!primary });
@@ -61,7 +61,7 @@ export default function Overview() {
   ];
   return (
     <div className="stack">
-      <PageHeader title={`Hello, ${user.firstName}`} subtitle="Here’s a summary of your accounts and security." actions={<><Button to="/app/transfers" icon="swap" size="md">Transfer</Button><Button to="/app/withdrawals" variant="secondary" icon="upload">Request withdrawal</Button></>} />
+      <PageHeader title={t('overview.hello', { name: user.firstName })} subtitle={t('overview.subtitle')} actions={<><Button to="/app/transfers" icon="swap" size="md">Transfer</Button><Button to="/app/withdrawals" variant="secondary" icon="upload">Request withdrawal</Button></>} />
       <AccountStatusNotice account={primary} verification={verification.data} />
       {primary && <Balance account={primary} />}
       {(dash.showChart || dash.showMoneyInOut) && (

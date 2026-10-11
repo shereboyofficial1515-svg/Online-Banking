@@ -12,6 +12,7 @@
     if (['small', 'large', 'xlarge'].indexOf(p.textSize) > -1) d.setAttribute('data-text-size', p.textSize);
     if (p.contrast === 'high') d.setAttribute('data-contrast', 'high');
     if (p.motion === 'reduce') d.setAttribute('data-motion', 'reduce');
+    if (/^[a-z]{2}$/.test(p.language || '')) { d.setAttribute('lang', p.language); d.setAttribute('dir', ['ar', 'ur', 'he', 'fa'].indexOf(p.language) > -1 ? 'rtl' : 'ltr'); }
     var b = JSON.parse(localStorage.getItem('ewb.brand') || 'null');
     if (b) {
       var hex = /^#[0-9a-fA-F]{6}$/;

@@ -71,6 +71,7 @@ export function createApp() {
   }));
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/features', customer.featuresRouter);
   app.use('/api/users', customer.users);
   app.use('/api/accounts', customer.accounts);
   app.use('/api/transactions', customer.transactions);

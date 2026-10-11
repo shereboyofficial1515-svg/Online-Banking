@@ -10,6 +10,7 @@ import * as verification from '../services/verificationService.js';
 import * as support from '../services/supportService.js';
 import * as security from '../services/securityEventService.js';
 import * as settings from '../services/settingsService.js';
+import * as features from '../services/featureService.js';
 import * as audit from '../services/auditService.js';
 import * as mfa from '../services/mfaService.js';
 import { can } from '../config/permissions.js';
@@ -107,3 +108,7 @@ export const updateStaff = h(async (req, res) => res.json({ staff: await admin.u
 export const listClosures = h(async (req, res) => res.json(await settings.listClosureRequests()));
 export const decideClosure = h(async (req, res) => res.json({ closure: await settings.decideClosure(req.ctx, req.params.id, req.body) }));
 export const accountSecurityReview = h(async (req, res) => res.json(await withdrawals.setSecurityReview(req.ctx, req.params.id, req.body)));
+
+// feature switches (management)
+export const getSavingsFeature = h(async (req, res) => res.json(await features.getSavingsSetting()));
+export const setSavingsFeature = h(async (req, res) => res.json(await features.setSavings(req.ctx, req.body)));

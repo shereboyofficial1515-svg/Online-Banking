@@ -11,10 +11,13 @@ import { useAuth } from '../../lib/auth.jsx';
 import { useDocumentTitle } from '../../lib/hooks.js';
 import { passwordScore } from '../../lib/format.js';
 import { useToast } from '../../components/ui/Toast.jsx';
+import PhoneInput, { phoneProblem } from '../../components/PhoneInput.jsx';
+import { usePrefs } from '../../lib/PreferencesProvider.jsx';
 
 // ───────── Login ─────────
 export function Login() {
-  useDocumentTitle('Sign in');
+  const { t } = usePrefs();
+  useDocumentTitle(t('auth.signin'));
   const { completeLogin, user } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
@@ -86,33 +89,34 @@ export function Login() {
   }
 
   return (
-    <AuthLayout title="Welcome back">
-      <p className="lead">Sign in to manage your accounts.</p>
+    <AuthLayout title={t('auth.login.title')}>
+      <p className="lead">{t('auth.login.lead')}</p>
       {err && (
         <Alert tone="danger" title={err.code === 'EMAIL_NOT_VERIFIED' ? 'Email not verified' : undefined}
           action={err.code === 'EMAIL_NOT_VERIFIED' ? <Button size="sm" variant="secondary" onClick={() => nav('/verify-email', { state: { email: err.details?.email } })}>Enter code</Button> : null}>{err.message}</Alert>
       )}
       <form onSubmit={submit} noValidate>
-        <Field label="Email or username" error={fe.identifier} required>{(p) => <Input {...p} autoFocus autoComplete="username" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />}</Field>
-        <Field label="Password" error={fe.password} required>{(p) => <PasswordInput {...p} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}</Field>
-        <div className="row-between" style={{ marginBottom: 16 }}><span /><Link to="/forgot-password" className="small">Forgot password?</Link></div>
-        <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>Sign in</Button>
+        <Field label={t('auth.identifier')} error={fe.identifier} required>{(p) => <Input {...p} autoFocus autoComplete="username" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} />}</Field>
+        <Field label={t('auth.password')} error={fe.password} required>{(p) => <PasswordInput {...p} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}</Field>
+        <div className="row-between" style={{ marginBottom: 16 }}><span /><Link to="/forgot-password" className="small">{t('auth.forgot')}</Link></div>
+        <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>{t('auth.signin')}</Button>
       </form>
       {passkeys && (<>
-        <div className="divider-text">or</div>
-        <Button variant="secondary" size="lg" icon="fingerprint" onClick={passkeyLogin} disabled={busy} style={{ width: '100%' }}>Sign in with a passkey</Button>
-        <p className="muted small center" style={{ marginTop: 8 }}>Use your fingerprint, face or device PIN.</p>
+        <div className="divider-text">{t('auth.or')}</div>
+        <Button variant="secondary" size="lg" icon="fingerprint" onClick={passkeyLogin} disabled={busy} style={{ width: '100%' }}>{t('auth.passkey')}</Button>
+        <p className="muted small center" style={{ marginTop: 8 }}>{t('auth.passkey.hint')}</p>
       </>)}
-      <p className="auth-foot">New to EWB Bank? <Link to="/register">Open an account</Link></p>
+      <p className="auth-foot">{t('auth.newHere')} <Link to="/register">{t('auth.openAccount')}</Link></p>
     </AuthLayout>
   );
 }
 
 // ───────── Register ─────────
-const empty = { firstName: '', lastName: '', email: '', phone: '', dateOfBirth: '', addressLine1: '', city: '', state: '', postalCode: '', country: '', password: '', confirm: '', agree: false };
+const empty = { firstName: '', lastName: '', email: '', phone: '', phoneCountry: '', dateOfBirth: '', addressLine1: '', city: '', state: '', postalCode: '', country: '', password: '', confirm: '', agree: false };
 
 export function Register() {
-  useDocumentTitle('Open an account');
+  const { t } = usePrefs();
+  useDocumentTitle(t('auth.openAccount'));
   const [f, setF] = useState(empty);
   const [fe, setFe] = useState({});
   const [err, setErr] = useState(null);
@@ -123,9 +127,11 @@ export function Register() {
   const submit = async (e) => {
     e.preventDefault(); setErr(null);
     const local = {};
-    if (f.password !== f.confirm) local.confirm = 'Passwords do not match.';
-    if (!f.agree) local.agree = 'You must accept the terms to continue.';
-    if (passwordScore(f.password, f.email) < 6) local.password = 'Choose a password that meets every requirement below.';
+    if (f.password !== f.confirm) local.confirm = t('auth.err.passwordMismatch');
+    if (!f.agree) local.agree = t('auth.err.terms');
+    if (passwordScore(f.password, f.email) < 6) local.password = t('auth.err.passwordRules');
+    const pp = phoneProblem(f.phone, f.phoneCountry || undefined);
+    if (pp) local.phone = t(pp); // the server validates the number again and is the authority
     setFe(local);
     if (Object.keys(local).length) return;
     setBusy(true);
@@ -138,48 +144,48 @@ export function Register() {
   };
 
   return (
-    <AuthLayout title="Open your account" wide>
-      <p className="lead">It takes a few minutes. We collect only what we need to set up and secure your profile.</p>
+    <AuthLayout title={t('auth.register.title')} wide>
+      <p className="lead">{t('auth.register.lead')}</p>
       {err && !Object.keys(fe).length && <Alert tone="danger">{err.message}</Alert>}
-      {Object.keys(fe).length > 0 && <Alert tone="danger" title="Please fix the highlighted fields" />}
+      {Object.keys(fe).length > 0 && <Alert tone="danger" title={t('auth.err.fixFields')} />}
       <form onSubmit={submit} noValidate>
         <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="sr-only">Personal details</legend>
           <div className="form-grid">
-            <Field label="First name" error={fe.firstName} required>{(p) => <Input {...p} autoComplete="given-name" value={f.firstName} onChange={set('firstName')} />}</Field>
-            <Field label="Last name" error={fe.lastName} required>{(p) => <Input {...p} autoComplete="family-name" value={f.lastName} onChange={set('lastName')} />}</Field>
-            <Field label="Email address" error={fe.email} required>{(p) => <Input {...p} type="email" autoComplete="email" inputMode="email" value={f.email} onChange={set('email')} />}</Field>
-            <Field label="Phone number" error={fe.phone} required>{(p) => <Input {...p} type="tel" autoComplete="tel" value={f.phone} onChange={set('phone')} />}</Field>
-            <Field label="Date of birth" error={fe.dateOfBirth} hint="You must be 18 or older." required>{(p) => <Input {...p} type="date" autoComplete="bday" value={f.dateOfBirth} onChange={set('dateOfBirth')} />}</Field>
-            <Field label="Username (optional)" error={fe.username} hint="Lowercase letters, numbers, dots or underscores.">{(p) => <Input {...p} autoComplete="username" value={f.username || ''} onChange={set('username')} />}</Field>
+            <Field label={t('auth.firstName')} error={fe.firstName} required>{(p) => <Input {...p} autoComplete="given-name" value={f.firstName} onChange={set('firstName')} />}</Field>
+            <Field label={t('auth.lastName')} error={fe.lastName} required>{(p) => <Input {...p} autoComplete="family-name" value={f.lastName} onChange={set('lastName')} />}</Field>
+            <Field label={t('auth.email')} error={fe.email} required>{(p) => <Input {...p} type="email" autoComplete="email" inputMode="email" value={f.email} onChange={set('email')} />}</Field>
+            <Field label={t('phone.label')} error={fe.phone} hint={t('phone.hint')} required className="span-2">{(p) => <PhoneInput id={p.id} describedBy={p['aria-describedby']} invalid={!!fe.phone} value={f.phone} country={f.phoneCountry} onChange={(v, c) => setF((cur) => ({ ...cur, phone: v, phoneCountry: c }))} />}</Field>
+            <Field label={t('auth.dob')} error={fe.dateOfBirth} hint={t('auth.dob.hint')} required>{(p) => <Input {...p} type="date" autoComplete="bday" value={f.dateOfBirth} onChange={set('dateOfBirth')} />}</Field>
+            <Field label={t('auth.username')} error={fe.username} hint={t('auth.username.hint')}>{(p) => <Input {...p} autoComplete="username" value={f.username || ''} onChange={set('username')} />}</Field>
           </div>
         </fieldset>
         <fieldset style={{ border: 0, padding: 0, margin: '8px 0 0' }}>
           <legend className="sr-only">Address</legend>
           <div className="form-grid">
-            <Field label="Street address" error={fe.addressLine1} className="span-2" required>{(p) => <Input {...p} autoComplete="address-line1" value={f.addressLine1} onChange={set('addressLine1')} />}</Field>
-            <Field label="City" error={fe.city} required>{(p) => <Input {...p} autoComplete="address-level2" value={f.city} onChange={set('city')} />}</Field>
-            <Field label="State / region" error={fe.state} required>{(p) => <Input {...p} autoComplete="address-level1" value={f.state} onChange={set('state')} />}</Field>
-            <Field label="Postal code" error={fe.postalCode}>{(p) => <Input {...p} autoComplete="postal-code" value={f.postalCode} onChange={set('postalCode')} />}</Field>
-            <Field label="Country" error={fe.country} required>{(p) => <Input {...p} autoComplete="country-name" value={f.country} onChange={set('country')} />}</Field>
+            <Field label={t('auth.street')} error={fe.addressLine1} className="span-2" required>{(p) => <Input {...p} autoComplete="address-line1" value={f.addressLine1} onChange={set('addressLine1')} />}</Field>
+            <Field label={t('auth.city')} error={fe.city} required>{(p) => <Input {...p} autoComplete="address-level2" value={f.city} onChange={set('city')} />}</Field>
+            <Field label={t('auth.state')} error={fe.state} required>{(p) => <Input {...p} autoComplete="address-level1" value={f.state} onChange={set('state')} />}</Field>
+            <Field label={t('auth.postal')} error={fe.postalCode}>{(p) => <Input {...p} autoComplete="postal-code" value={f.postalCode} onChange={set('postalCode')} />}</Field>
+            <Field label={t('auth.country')} error={fe.country} required>{(p) => <Input {...p} autoComplete="country-name" value={f.country} onChange={set('country')} />}</Field>
           </div>
         </fieldset>
         <fieldset style={{ border: 0, padding: 0, margin: '8px 0 0' }}>
           <legend className="sr-only">Password</legend>
           <div className="form-grid">
-            <Field label="Password" error={fe.password} required>{(p) => <PasswordInput {...p} autoComplete="new-password" value={f.password} onChange={set('password')} />}</Field>
-            <Field label="Confirm password" error={fe.confirm} required>{(p) => <PasswordInput {...p} autoComplete="new-password" value={f.confirm} onChange={set('confirm')} />}</Field>
+            <Field label={t('auth.password')} error={fe.password} required>{(p) => <PasswordInput {...p} autoComplete="new-password" value={f.password} onChange={set('password')} />}</Field>
+            <Field label={t('auth.confirmPassword')} error={fe.confirm} required>{(p) => <PasswordInput {...p} autoComplete="new-password" value={f.confirm} onChange={set('confirm')} />}</Field>
           </div>
           <PasswordStrength password={f.password} email={f.email} />
         </fieldset>
         <div className={fe.agree ? 'has-error' : ''}>
           <label className="checkbox"><input type="checkbox" checked={f.agree} onChange={set('agree')} aria-describedby="agree-note" />
-            <span>I am 18 or older and agree to the <Link to="/terms" target="_blank">Terms of Service</Link> and <Link to="/privacy" target="_blank">Privacy Policy</Link>, including the <Link to="/terms" target="_blank">important information</Link> on how balances are held.</span></label>
+            <span>{t('auth.agree.a')}<Link to="/terms" target="_blank">{t('auth.terms')}</Link>{t('auth.agree.b')}<Link to="/privacy" target="_blank">{t('auth.privacy')}</Link>{t('auth.agree.c')}</span></label>
           {fe.agree && <p className="field-error" id="agree-note" role="alert"><Icon name="alert" size={14} /> {fe.agree}</p>}
         </div>
-        <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>Create account</Button>
+        <Button type="submit" loading={busy} size="lg" style={{ width: '100%' }}>{t('auth.createAccount')}</Button>
       </form>
-      <p className="auth-foot">Already registered? <Link to="/login">Sign in</Link></p>
+      <p className="auth-foot">{t('auth.alreadyRegistered')} <Link to="/login">{t('auth.signin')}</Link></p>
     </AuthLayout>
   );
 }

@@ -4,6 +4,7 @@ import config from '../config/index.js';
 import { getDb } from '../db/index.js';
 import * as L from '../repositories/ledger.js';
 import * as audit from './auditService.js';
+import { assertSavingsEnabled } from './featureService.js';
 import * as security from './securityEventService.js';
 import { notify } from './notificationService.js';
 import { badRequest, conflict, forbidden, notFound } from '../utils/errors.js';
@@ -144,8 +145,9 @@ export async function transfer(ctx, { fromAccountId, toAccountNumber, amountMino
     if (prior) return { replayed: true, transaction: prior };
     const { rows: own } = await t.query('SELECT id FROM accounts WHERE id=$1 AND user_id=$2', [fromAccountId, userId]);
     if (!own[0]) throw notFound('Account not found.');
-    const { rows: dest } = await t.query("SELECT id FROM accounts WHERE (account_number=$1 OR legacy_account_number=$1) AND kind='customer'", [toAccountNumber]);
+    const { rows: dest } = await t.query("SELECT id, type FROM accounts WHERE (account_number=$1 OR legacy_account_number=$1) AND kind='customer'", [toAccountNumber]);
     if (!dest[0]) throw notFound('The destination account was not found.');
+    if (dest[0].type === 'savings') await assertSavingsEnabled(t); // new deposits into savings are paused while the feature is off; withdrawals from existing savings are not blocked
     if (dest[0].id === fromAccountId) throw badRequest('Choose a different destination account.');
 
     const locked = await L.lockAccounts(t, [fromAccountId, dest[0].id]);

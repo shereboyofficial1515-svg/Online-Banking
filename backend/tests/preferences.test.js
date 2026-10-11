@@ -32,7 +32,7 @@ describe('display, accessibility and regional preferences', () => {
   test('invalid values are rejected by the server (enums, timezone, language)', async () => {
     const cust = await makeCustomer();
     const c = client(app); await login(c, cust.email);
-    for (const bad of [{ theme: 'neon' }, { textSize: 'huge' }, { dateFormat: 'weird' }, { numberFormat: 'xx-XX' }, { motion: 'full' }, { timezone: 'Mars/Olympus' }, { language: 'fr' }, { language: 'english' }, { dashboard: { showChart: 'yes' } }]) {
+    for (const bad of [{ theme: 'neon' }, { textSize: 'huge' }, { dateFormat: 'weird' }, { numberFormat: 'xx-XX' }, { motion: 'full' }, { timezone: 'Mars/Olympus' }, { language: 'zz' }, { language: 'english' }, { dashboard: { showChart: 'yes' } }]) {
       const r = await c.put('/api/users/me/preferences', bad);
       assert.equal(r.status, 422, `should reject ${JSON.stringify(bad)}`);
     }
